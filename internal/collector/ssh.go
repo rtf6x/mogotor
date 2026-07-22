@@ -3,6 +3,7 @@ package collector
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
@@ -69,7 +70,7 @@ func collectLastLogins(limit int) []models.SSHAuthEvent {
 			continue
 		}
 
-		when, err := time.ParseInLocation("Mon Jan _2 15:04:05", matches[4], time.Local)
+		when, err := parseLastTimestamp(matches[4])
 		if err != nil {
 			continue
 		}
@@ -148,7 +149,7 @@ func readAuthLogLines(limit int) ([]string, error) {
 	if out, err := exec.Command("sudo", "tail", "-n", strconv.Itoa(limit), "/var/log/auth.log").Output(); err == nil {
 		return splitLines(out), nil
 	}
-	if out, err := exec.Command("journalctl", "-t", "sshd", "-n", strconv.Itoa(limit), "--no-pager", "-o", "cat").Output(); err == nil {
+	if out, err := exec.Command("journalctl", "-t", "sshd", "-n", strconv.Itoa(limit), "--no-pager").Output(); err == nil {
 		return splitLines(out), nil
 	}
 	return nil, os.ErrPermission
@@ -238,6 +239,15 @@ func parseAuthLogLine(line string) (time.Time, string, bool) {
 	}
 
 	return when, strings.TrimSpace(line[idx+1:]), true
+}
+
+func parseLastTimestamp(value string) (time.Time, error) {
+	for _, layout := range []string{"Mon Jan _2 15:04:05", "Mon Jan _2 15:04"} {
+		if when, err := time.ParseInLocation(layout, value, time.Local); err == nil {
+			return when, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("invalid last timestamp: %s", value)
 }
 
 func withCurrentYear(value time.Time) time.Time {

@@ -44,6 +44,16 @@ func TestParseAuthLogInvalidUser(t *testing.T) {
 	}
 }
 
+func TestParseLastTimestamp(t *testing.T) {
+	when, err := parseLastTimestamp("Wed Jul 22 10:23")
+	if err != nil {
+		t.Fatalf("parse last timestamp: %v", err)
+	}
+	if when.Month() != time.July || when.Day() != 22 || when.Hour() != 10 || when.Minute() != 23 {
+		t.Fatalf("unexpected time: %v", when)
+	}
+}
+
 func mustParseTime(t *testing.T, value string) time.Time {
 	t.Helper()
 	parsed, err := time.ParseInLocation("2006-01-02 15:04:05", value, time.Local)
