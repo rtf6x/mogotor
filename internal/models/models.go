@@ -22,6 +22,15 @@ type SystemSnapshot struct {
 	UptimeSeconds   uint64    `json:"uptimeSeconds"`
 }
 
+type DiskUsage struct {
+	Device      string  `json:"device,omitempty"`
+	Mountpoint  string  `json:"mountpoint"`
+	Fstype      string  `json:"fstype,omitempty"`
+	UsedBytes   uint64  `json:"usedBytes"`
+	TotalBytes  uint64  `json:"totalBytes"`
+	UsedPercent float64 `json:"usedPercent"`
+}
+
 type PM2Process struct {
 	ID          int     `json:"id"`
 	Name        string  `json:"name"`
@@ -128,6 +137,7 @@ type SSHSnapshot struct {
 type Snapshot struct {
 	Timestamp time.Time       `json:"timestamp"`
 	System    SystemSnapshot  `json:"system"`
+	Disks     []DiskUsage     `json:"disks"`
 	PM2       PM2Snapshot     `json:"pm2"`
 	Docker    DockerSnapshot  `json:"docker"`
 	Services  []ServiceStatus `json:"services"`

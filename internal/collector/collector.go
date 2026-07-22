@@ -47,6 +47,7 @@ func (c *Collector) Run(ctx context.Context) {
 func (c *Collector) collect() {
 	now := time.Now()
 	system := CollectSystem(now)
+	disks := CollectDisks()
 	pm2 := CollectPM2("")
 	docker := CollectDocker("docker")
 	services := CollectServices(c.cfg.Services)
@@ -57,6 +58,7 @@ func (c *Collector) collect() {
 	snapshot := models.Snapshot{
 		Timestamp: now,
 		System:    system,
+		Disks:     disks,
 		PM2:       pm2,
 		Docker:    docker,
 		Services:  services,

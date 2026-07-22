@@ -48,6 +48,25 @@
     <section class="cards" id="summary-cards"></section>
 
     <section class="panel">
+      <h2>Storage</h2>
+      <div id="storage-status" class="status-line"></div>
+      <div class="table-wrap">
+        <table id="storage-table">
+          <thead>
+            <tr>
+              <th>Mount</th>
+              <th>Device</th>
+              <th>Type</th>
+              <th>Used</th>
+              <th>Usage</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>System metrics</h2>
       <p class="panel-note">Last hour preview · click a chart for 24 hours</p>
       <div class="charts">
@@ -59,8 +78,12 @@
           <h3 class="chart-title">Memory usage</h3>
           <div class="chart-canvas"><canvas id="memory-chart"></canvas></div>
         </div>
-        <div class="chart-box" data-chart="disk" role="button" tabindex="0" aria-label="Disk usage, open 24 hour chart">
-          <h3 class="chart-title">Disk usage</h3>
+        <div class="chart-box" data-chart="swap" role="button" tabindex="0" aria-label="Swap usage, open 24 hour chart">
+          <h3 class="chart-title">Swap usage</h3>
+          <div class="chart-canvas"><canvas id="swap-chart"></canvas></div>
+        </div>
+        <div class="chart-box" data-chart="disk" role="button" tabindex="0" aria-label="Root disk usage, open 24 hour chart">
+          <h3 class="chart-title">Disk usage (/)</h3>
           <div class="chart-canvas"><canvas id="disk-chart"></canvas></div>
         </div>
         <div class="chart-box" data-chart="network" role="button" tabindex="0" aria-label="Network throughput, open 24 hour chart">

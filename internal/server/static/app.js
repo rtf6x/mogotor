@@ -29,9 +29,20 @@ const CHART_SPECS = {
       value: (point) => (point.memoryTotalBytes ? (point.memoryUsedBytes / point.memoryTotalBytes) * 100 : 0),
     }],
   },
+  swap: {
+    id: "swap-chart",
+    title: "Swap usage",
+    multi: false,
+    datasets: [{
+      label: "Swap %",
+      color: theme.bad,
+      fill: true,
+      value: (point) => (point.swapTotalBytes ? (point.swapUsedBytes / point.swapTotalBytes) * 100 : 0),
+    }],
+  },
   disk: {
     id: "disk-chart",
-    title: "Disk usage",
+    title: "Disk usage (/)",
     multi: false,
     datasets: [{ label: "Disk %", color: theme.brandSoft, fill: true, value: (point) => point.diskUsedPercent }],
   },
@@ -253,16 +264,26 @@ function initChartModal() {
   });
 }
 
+function usageClass(percent) {
+  if (percent >= 90) return "bad";
+  if (percent >= 75) return "warn";
+  return "ok";
+}
+
 function renderSummary(snapshot) {
   const system = snapshot.system;
   const memPercent = system.memoryTotalBytes
     ? (system.memoryUsedBytes / system.memoryTotalBytes) * 100
     : 0;
+  const swapPercent = system.swapTotalBytes
+    ? (system.swapUsedBytes / system.swapTotalBytes) * 100
+    : 0;
 
   const cards = [
     { label: "CPU", value: formatPercent(system.cpuPercent) },
     { label: "Memory", value: formatPercent(memPercent), sub: `${formatBytes(system.memoryUsedBytes)} / ${formatBytes(system.memoryTotalBytes)}` },
-    { label: "Disk", value: formatPercent(system.diskUsedPercent), sub: `${formatBytes(system.diskUsedBytes)} / ${formatBytes(system.diskTotalBytes)}` },
+    { label: "Swap", value: formatPercent(swapPercent), sub: `${formatBytes(system.swapUsedBytes)} / ${formatBytes(system.swapTotalBytes)}` },
+    { label: "Disk (/)", value: formatPercent(system.diskUsedPercent), sub: `${formatBytes(system.diskUsedBytes)} / ${formatBytes(system.diskTotalBytes)}` },
     { label: "Load (1m)", value: Number(system.load1 || 0).toFixed(2), sub: `5m ${Number(system.load5 || 0).toFixed(2)} · 15m ${Number(system.load15 || 0).toFixed(2)}` },
     { label: "Network", value: `${formatBytes(system.netRecvBps)}/s`, sub: `↑ ${formatBytes(system.netSendBps)}/s` },
     { label: "Uptime", value: formatUptime(system.uptimeSeconds) },
@@ -342,6 +363,24 @@ function renderDocker(docker) {
       <td>${container.pids}</td>
     </tr>
   `).join("") || `<tr><td colspan="4">No running containers</td></tr>`;
+}
+
+function renderStorage(disks) {
+  const status = document.getElementById("storage-status");
+  const tbody = document.querySelector("#storage-table tbody");
+  const items = disks || [];
+
+  status.textContent = `${items.length} mount(s)`;
+  status.className = "status-line";
+  tbody.innerHTML = items.map((disk) => `
+    <tr>
+      <td class="mono">${disk.mountpoint}</td>
+      <td class="mono">${disk.device || "—"}</td>
+      <td>${disk.fstype || "—"}</td>
+      <td>${formatBytes(disk.usedBytes)} / ${formatBytes(disk.totalBytes)}</td>
+      <td><span class="pill ${usageClass(disk.usedPercent)}">${formatPercent(disk.usedPercent)}</span></td>
+    </tr>
+  `).join("") || `<tr><td colspan="5">No storage mounts found</td></tr>`;
 }
 
 function renderServices(services) {
@@ -449,6 +488,7 @@ async function refresh() {
   document.getElementById("sample-age").textContent = "live";
 
   renderSummary(snapshot);
+  renderStorage(snapshot.disks || []);
   renderHistory(history.points || []);
   renderPM2(snapshot.pm2);
   renderDocker(snapshot.docker);
