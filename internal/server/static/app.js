@@ -287,6 +287,15 @@ function formatUptime(seconds) {
   return `${minutes}m`;
 }
 
+function formatPM2Uptime(uptimeMs, status) {
+  const state = String(status || "").toLowerCase();
+  if (!uptimeMs || !["online", "launching"].includes(state)) {
+    return "—";
+  }
+  const seconds = Math.max(0, Math.floor((Date.now() - uptimeMs) / 1000));
+  return formatUptime(seconds);
+}
+
 function renderPM2(pm2) {
   const status = document.getElementById("pm2-status");
   const tbody = document.querySelector("#pm2-table tbody");
@@ -306,6 +315,7 @@ function renderPM2(pm2) {
       <td><span class="pill ${statusClass(proc.status)}">${proc.status}</span></td>
       <td>${formatPercent(proc.cpu)}</td>
       <td>${formatBytes(proc.memoryBytes)}</td>
+      <td>${formatPM2Uptime(proc.uptimeMs, proc.status)}</td>
       <td>${proc.restarts}</td>
     </tr>
   `).join("");
