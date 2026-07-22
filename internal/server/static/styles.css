@@ -6,8 +6,9 @@
   --bg: #0a0b0f;
   --panel: #111318;
   --panel-elevated: #1a1d24;
-  --surface-panel: linear-gradient(160deg, rgba(26, 29, 36, 0.94) 0%, rgba(14, 16, 20, 0.9) 100%);
-  --surface-card: linear-gradient(160deg, rgba(22, 25, 31, 0.88) 0%, rgba(11, 13, 17, 0.84) 100%);
+  --surface-panel: rgba(0, 0, 0, 0.24);
+  --surface-panel-border: rgba(255, 255, 255, 0.08);
+  --surface-card: rgba(0, 0, 0, 0.24);
   --surface-nested: rgba(255, 255, 255, 0.04);
   --border: rgba(255, 255, 255, 0.1);
   --border-faint: rgba(255, 255, 255, 0.06);
@@ -83,12 +84,14 @@ main {
 
 .card {
   background: var(--surface-card);
-  border: 1px solid var(--border-faint);
+  border: 1px solid var(--surface-panel-border);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 
 .card-label {
@@ -110,13 +113,15 @@ main {
 
 .panel {
   background: var(--surface-panel);
-  border: 1px solid var(--border-faint);
+  border: 1px solid var(--surface-panel-border);
   border-radius: 14px;
   padding: 1rem 1rem 1.25rem;
   margin-bottom: 1.5rem;
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 
 .panel h2 {
