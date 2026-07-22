@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Mogotor">
+  <rect width="32" height="32" rx="7" fill="#0d1117"/>
+  <rect x="1" y="1" width="30" height="30" rx="6" fill="none" stroke="#30363d" stroke-width="1"/>
+  <path d="M6 22 L11 16 L15 19 L21 10 L26 14" fill="none" stroke="#58a6ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="26" cy="14" r="2" fill="#3fb950"/>
+  <rect x="6" y="7" width="4" height="4" rx="1" fill="#58a6ff" opacity="0.85"/>
+  <rect x="12" y="7" width="14" height="2" rx="1" fill="#8b949e" opacity="0.55"/>
+  <rect x="12" y="10.5" width="9" height="2" rx="1" fill="#8b949e" opacity="0.35"/>
+</svg>

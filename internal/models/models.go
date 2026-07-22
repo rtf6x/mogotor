@@ -88,6 +88,21 @@ type MongoSnapshot struct {
 	OpsDelete            int64  `json:"opsDelete"`
 }
 
+type SSHAuthEvent struct {
+	Timestamp time.Time `json:"timestamp"`
+	User      string    `json:"user"`
+	IP        string    `json:"ip"`
+	Method    string    `json:"method,omitempty"`
+	Kind      string    `json:"kind"`
+}
+
+type SSHSnapshot struct {
+	Available bool           `json:"available"`
+	Error     string         `json:"error,omitempty"`
+	Logins    []SSHAuthEvent `json:"logins"`
+	Failures  []SSHAuthEvent `json:"failures"`
+}
+
 type Snapshot struct {
 	Timestamp time.Time       `json:"timestamp"`
 	System    SystemSnapshot  `json:"system"`
@@ -95,6 +110,7 @@ type Snapshot struct {
 	Docker    DockerSnapshot  `json:"docker"`
 	Services  []ServiceStatus `json:"services"`
 	Mongo     MongoSnapshot   `json:"mongo"`
+	SSH       SSHSnapshot     `json:"ssh"`
 }
 
 type HistoryResponse struct {

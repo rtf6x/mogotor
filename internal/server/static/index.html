@@ -4,6 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mogotor</title>
+  <meta name="description" content="Server analytics dashboard with 24-hour metrics, PM2, Docker, and MongoDB monitoring.">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="canonical" href="https://mogotor.rootfox.cc/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mogotor">
+  <meta property="og:url" content="https://mogotor.rootfox.cc/">
+  <meta property="og:title" content="Mogotor">
+  <meta property="og:description" content="Server analytics dashboard with 24-hour metrics, PM2, Docker, and MongoDB monitoring.">
+  <meta property="og:image" content="https://mogotor.rootfox.cc/og.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1536">
+  <meta property="og:image:height" content="1024">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mogotor">
+  <meta name="twitter:description" content="Server analytics dashboard with 24-hour metrics, PM2, Docker, and MongoDB monitoring.">
+  <meta name="twitter:image" content="https://mogotor.rootfox.cc/og.png">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+
   <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
   <script src="/app.js" defer></script>
@@ -82,6 +106,44 @@
       <div class="panel">
         <h2>MongoDB</h2>
         <div id="mongo-panel" class="mongo-panel"></div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>SSH logins</h2>
+        <div id="ssh-login-status" class="status-line"></div>
+        <div class="table-wrap">
+          <table id="ssh-login-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>IP</th>
+                <th>Method</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>SSH failures</h2>
+        <div id="ssh-failure-status" class="status-line"></div>
+        <div class="table-wrap">
+          <table id="ssh-failure-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>IP</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>

@@ -16,7 +16,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.CollectInterval != time.Minute {
 		t.Fatalf("expected 1m interval, got %s", cfg.CollectInterval)
 	}
-	if len(cfg.Services) != 1 {
-		t.Fatalf("expected 1 default service, got %d", len(cfg.Services))
+	if len(cfg.Services) != 6 {
+		t.Fatalf("expected 6 default services, got %d", len(cfg.Services))
 	}
 }

@@ -51,6 +51,7 @@ func (c *Collector) collect() {
 	docker := CollectDocker("docker")
 	services := CollectServices(c.cfg.Services)
 	mongo := CollectMongo(c.cfg.MongoURI)
+	ssh := CollectSSH()
 
 	snapshot := models.Snapshot{
 		Timestamp: now,
@@ -59,6 +60,7 @@ func (c *Collector) collect() {
 		Docker:    docker,
 		Services:  services,
 		Mongo:     mongo,
+		SSH:       ssh,
 	}
 
 	c.history.Add(system)

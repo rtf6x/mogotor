@@ -246,7 +246,7 @@ function renderServices(services) {
         <div class="service-desc">${service.description || "—"}${service.mainPid ? ` · PID ${service.mainPid}` : ""}</div>
         ${service.error ? `<div class="service-desc" style="color: var(--bad)">${service.error}</div>` : ""}
       </div>
-      <div>
+      <div class="service-status">
         <span class="pill ${statusClass(service.active)}">${service.active}</span>
         <div class="service-desc">${service.subState || ""}${service.memoryBytes ? ` · ${formatBytes(service.memoryBytes)}` : ""}</div>
       </div>
@@ -257,28 +257,76 @@ function renderServices(services) {
 function renderMongo(mongo) {
   const root = document.getElementById("mongo-panel");
   if (!mongo.available) {
-    root.innerHTML = `<div class="service-item"><div><div class="service-name">MongoDB</div><div class="service-desc">${mongo.error || "Unavailable"}</div></div><span class="pill bad">offline</span></div>`;
+    root.innerHTML = `<div class="service-item"><div><div class="service-name">MongoDB</div><div class="service-desc">${mongo.error || "Unavailable"}</div></div><div class="service-status"><span class="pill bad">offline</span></div></div>`;
     return;
   }
 
-  const cache = mongo.cacheBytes
-    ? `${formatBytes(mongo.cacheBytes)}${mongo.cacheMaxBytes ? ` / ${formatBytes(mongo.cacheMaxBytes)}` : ""}`
-    : "—";
-
-  const rows = [
-    ["Version", mongo.version || "—"],
-    ["Uptime", mongo.uptimeSeconds ? formatUptime(mongo.uptimeSeconds) : "—"],
-    ["Connections", mongo.connections != null ? `${mongo.connections}${mongo.connectionsAvailable != null ? ` / ${mongo.connectionsAvailable}` : ""}` : "—"],
-    ["Resident memory", mongo.memoryResidentMb != null ? `${mongo.memoryResidentMb} MB` : "—"],
-    ["Virtual memory", mongo.memoryVirtualMb != null ? `${mongo.memoryVirtualMb} MB` : "—"],
-    ["WiredTiger cache", cache],
-    ["Queries", mongo.opsQuery != null ? Number(mongo.opsQuery).toLocaleString() : "—"],
-    ["Updates", mongo.opsUpdate != null ? Number(mongo.opsUpdate).toLocaleString() : "—"],
-  ];
+  const rows = mongo.source === "process"
+    ? [
+        ["Process memory", mongo.processMemoryBytes ? formatBytes(mongo.processMemoryBytes) : "—"],
+        ["Resident memory", mongo.memoryResidentMb != null ? `${mongo.memoryResidentMb} MB` : "—"],
+      ]
+    : [
+        ["Version", mongo.version || "—"],
+        ["Uptime", mongo.uptimeSeconds ? formatUptime(mongo.uptimeSeconds) : "—"],
+        ["Connections", mongo.connections ? `${mongo.connections}${mongo.connectionsAvailable ? ` / ${mongo.connectionsAvailable}` : ""}` : "—"],
+        ["Resident memory", mongo.memoryResidentMb != null ? `${mongo.memoryResidentMb} MB` : "—"],
+        ["Virtual memory", mongo.memoryVirtualMb ? `${mongo.memoryVirtualMb} MB` : "—"],
+        ["WiredTiger cache", mongo.cacheBytes ? `${formatBytes(mongo.cacheBytes)}${mongo.cacheMaxBytes ? ` / ${formatBytes(mongo.cacheMaxBytes)}` : ""}` : "—"],
+        ["Queries", mongo.opsQuery ? Number(mongo.opsQuery).toLocaleString() : "—"],
+        ["Updates", mongo.opsUpdate ? Number(mongo.opsUpdate).toLocaleString() : "—"],
+      ];
 
   root.innerHTML = rows.map(([label, value]) => `
     <div class="mongo-item"><span>${label}</span><strong>${value}</strong></div>
   `).join("") + (mongo.source ? `<div class="service-desc">source: ${mongo.source}</div>` : "");
+}
+
+function sshKindLabel(kind) {
+  if (kind === "failed_password") return "failed password";
+  if (kind === "invalid_user") return "invalid user";
+  return kind || "—";
+}
+
+function renderSSH(ssh) {
+  const loginStatus = document.getElementById("ssh-login-status");
+  const failureStatus = document.getElementById("ssh-failure-status");
+  const loginBody = document.querySelector("#ssh-login-table tbody");
+  const failureBody = document.querySelector("#ssh-failure-table tbody");
+
+  if (!ssh || !ssh.available) {
+    const message = ssh?.error || "SSH auth logs unavailable";
+    loginStatus.textContent = message;
+    loginStatus.className = "status-line error";
+    failureStatus.textContent = message;
+    failureStatus.className = "status-line error";
+    loginBody.innerHTML = "";
+    failureBody.innerHTML = "";
+    return;
+  }
+
+  loginStatus.textContent = `${(ssh.logins || []).length} recent login(s)`;
+  loginStatus.className = "status-line";
+  failureStatus.textContent = `${(ssh.failures || []).length} recent failure(s)`;
+  failureStatus.className = "status-line";
+
+  loginBody.innerHTML = (ssh.logins || []).map((event) => `
+    <tr>
+      <td>${formatTime(event.timestamp)}</td>
+      <td>${event.user}</td>
+      <td class="mono">${event.ip}</td>
+      <td>${event.method || "—"}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="4">No recent logins</td></tr>`;
+
+  failureBody.innerHTML = (ssh.failures || []).map((event) => `
+    <tr>
+      <td>${formatTime(event.timestamp)}</td>
+      <td>${event.user}</td>
+      <td class="mono">${event.ip}</td>
+      <td><span class="pill bad">${sshKindLabel(event.kind)}</span></td>
+    </tr>
+  `).join("") || `<tr><td colspan="4">No recent failures</td></tr>`;
 }
 
 async function refresh() {
@@ -299,6 +347,7 @@ async function refresh() {
   renderDocker(snapshot.docker);
   renderServices(snapshot.services || []);
   renderMongo(snapshot.mongo);
+  renderSSH(snapshot.ssh);
 }
 
 refresh();

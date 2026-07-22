@@ -2,7 +2,9 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -22,14 +24,34 @@ type Config struct {
 }
 
 func Load() Config {
+	dataDir := envOr("MOGOTOR_DATA_DIR", defaultDataDir())
 	return Config{
 		Addr:            envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
-		DataDir:         envOr("MOGOTOR_DATA_DIR", defaultDataDir()),
-		MongoURI:        os.Getenv("MOGOTOR_MONGO_URI"),
+		DataDir:         dataDir,
+		MongoURI:        resolveMongoURI(dataDir),
 		CollectInterval: DefaultCollectInterval,
 		Retention:       DefaultRetention,
-		Services:        []string{"mongod"},
+		Services: []string{
+			"mongod",
+			"nginx",
+			"docker",
+			"jenkins",
+			"redis-server",
+			"fail2ban",
+		},
 	}
+}
+
+func resolveMongoURI(dataDir string) string {
+	if uri := strings.TrimSpace(os.Getenv("MOGOTOR_MONGO_URI")); uri != "" {
+		return uri
+	}
+	path := filepath.Join(dataDir, "mongo.uri")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }
 
 func envOr(key, fallback string) string {
