@@ -50,7 +50,7 @@ func (c *Collector) collect() {
 	pm2 := CollectPM2("")
 	docker := CollectDocker("docker")
 	services := CollectServices(c.cfg.Services)
-	mongo := CollectMongo("mongodb://127.0.0.1:27017")
+	mongo := CollectMongo(c.cfg.MongoURI)
 
 	snapshot := models.Snapshot{
 		Timestamp: now,

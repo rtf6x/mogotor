@@ -261,13 +261,24 @@ function renderMongo(mongo) {
     return;
   }
 
-  root.innerHTML = `
-    <div class="mongo-item"><span>Version</span><strong>${mongo.version || "—"}</strong></div>
-    <div class="mongo-item"><span>Uptime</span><strong>${formatUptime(mongo.uptimeSeconds)}</strong></div>
-    <div class="mongo-item"><span>Connections</span><strong>${mongo.connections}</strong></div>
-    <div class="mongo-item"><span>Resident memory</span><strong>${mongo.memoryResident} MB</strong></div>
-    <div class="mongo-item"><span>Query ops (total)</span><strong>${Number(mongo.opsPerSecond || 0).toLocaleString()}</strong></div>
-  `;
+  const cache = mongo.cacheBytes
+    ? `${formatBytes(mongo.cacheBytes)}${mongo.cacheMaxBytes ? ` / ${formatBytes(mongo.cacheMaxBytes)}` : ""}`
+    : "—";
+
+  const rows = [
+    ["Version", mongo.version || "—"],
+    ["Uptime", mongo.uptimeSeconds ? formatUptime(mongo.uptimeSeconds) : "—"],
+    ["Connections", mongo.connections != null ? `${mongo.connections}${mongo.connectionsAvailable != null ? ` / ${mongo.connectionsAvailable}` : ""}` : "—"],
+    ["Resident memory", mongo.memoryResidentMb != null ? `${mongo.memoryResidentMb} MB` : "—"],
+    ["Virtual memory", mongo.memoryVirtualMb != null ? `${mongo.memoryVirtualMb} MB` : "—"],
+    ["WiredTiger cache", cache],
+    ["Queries", mongo.opsQuery != null ? Number(mongo.opsQuery).toLocaleString() : "—"],
+    ["Updates", mongo.opsUpdate != null ? Number(mongo.opsUpdate).toLocaleString() : "—"],
+  ];
+
+  root.innerHTML = rows.map(([label, value]) => `
+    <div class="mongo-item"><span>${label}</span><strong>${value}</strong></div>
+  `).join("") + (mongo.source ? `<div class="service-desc">source: ${mongo.source}</div>` : "");
 }
 
 async function refresh() {

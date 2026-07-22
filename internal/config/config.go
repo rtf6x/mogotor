@@ -15,6 +15,7 @@ const (
 type Config struct {
 	Addr            string
 	DataDir         string
+	MongoURI        string
 	CollectInterval time.Duration
 	Retention       time.Duration
 	Services        []string
@@ -24,9 +25,10 @@ func Load() Config {
 	return Config{
 		Addr:            envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
 		DataDir:         envOr("MOGOTOR_DATA_DIR", defaultDataDir()),
+		MongoURI:        os.Getenv("MOGOTOR_MONGO_URI"),
 		CollectInterval: DefaultCollectInterval,
 		Retention:       DefaultRetention,
-		Services:        []string{"mongod", "mongodb"},
+		Services:        []string{"mongod"},
 	}
 }
 

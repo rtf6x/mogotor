@@ -70,13 +70,22 @@ type ServiceStatus struct {
 }
 
 type MongoSnapshot struct {
-	Available      bool    `json:"available"`
-	Error          string  `json:"error,omitempty"`
-	Version        string  `json:"version"`
-	UptimeSeconds  int64   `json:"uptimeSeconds"`
-	Connections    int     `json:"connections"`
-	MemoryResident int     `json:"memoryResidentMb"`
-	OpsPerSecond   float64 `json:"opsPerSecond"`
+	Available            bool   `json:"available"`
+	Source               string `json:"source,omitempty"`
+	Error                string `json:"error,omitempty"`
+	Version              string `json:"version"`
+	UptimeSeconds        int64  `json:"uptimeSeconds"`
+	Connections          int    `json:"connections"`
+	ConnectionsAvailable int    `json:"connectionsAvailable"`
+	MemoryResidentMb     int    `json:"memoryResidentMb"`
+	MemoryVirtualMb      int    `json:"memoryVirtualMb"`
+	ProcessMemoryBytes   uint64 `json:"processMemoryBytes,omitempty"`
+	CacheBytes           uint64 `json:"cacheBytes"`
+	CacheMaxBytes        uint64 `json:"cacheMaxBytes"`
+	OpsQuery             int64  `json:"opsQuery"`
+	OpsInsert            int64  `json:"opsInsert"`
+	OpsUpdate            int64  `json:"opsUpdate"`
+	OpsDelete            int64  `json:"opsDelete"`
 }
 
 type Snapshot struct {
