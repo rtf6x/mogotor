@@ -1,16 +1,21 @@
 :root {
   color-scheme: dark;
-  --bg: #0d1117;
-  --panel: #161b22;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --accent: #58a6ff;
-  --ok: #3fb950;
-  --warn: #d29922;
-  --bad: #f85149;
-  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --brand: #ff5e00;
+  --brand-rgb: 255, 94, 0;
+  --brand-soft: #fabd6e;
+  --bg: #0a0b0f;
+  --panel: #111318;
+  --panel-elevated: #1a1d24;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-brand: rgba(var(--brand-rgb), 0.28);
+  --text: #f2f2f7;
+  --muted: #9aa3b2;
+  --accent: var(--brand);
+  --ok: #2ecc71;
+  --warn: #fabd6e;
+  --bad: #e74c3c;
+  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 * {
@@ -19,7 +24,9 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #1a2332 0%, var(--bg) 45%);
+  background:
+    radial-gradient(circle at top, rgba(var(--brand-rgb), 0.14) 0%, transparent 42%),
+    linear-gradient(180deg, #0a0b0f 0%, #000000 100%);
   color: var(--text);
   min-height: 100vh;
 }
@@ -32,7 +39,7 @@ body {
   padding: 1.5rem 1.5rem 0.5rem;
 }
 
-h1, h2 {
+h1, h2, h3 {
   margin: 0;
 }
 
@@ -54,8 +61,8 @@ h1, h2 {
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(88, 166, 255, 0.15);
-  color: var(--accent);
+  background: rgba(var(--brand-rgb), 0.15);
+  color: var(--brand);
   font-size: 0.8rem;
 }
 
@@ -115,11 +122,22 @@ main {
 }
 
 .chart-box {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--panel-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.75rem;
-  min-height: 220px;
+}
+
+.chart-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.65rem;
+}
+
+.chart-canvas {
+  position: relative;
+  height: 190px;
 }
 
 .grid-2 {
@@ -172,7 +190,7 @@ th {
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .service-status {
@@ -204,18 +222,18 @@ th {
 }
 
 .pill.ok {
-  background: rgba(63, 185, 80, 0.15);
+  background: rgba(46, 204, 113, 0.15);
   color: var(--ok);
 }
 
 .pill.bad {
-  background: rgba(248, 81, 73, 0.15);
+  background: rgba(231, 76, 60, 0.15);
   color: var(--bad);
 }
 
 .pill.warn {
-  background: rgba(210, 153, 34, 0.15);
-  color: var(--warn);
+  background: rgba(var(--brand-rgb), 0.15);
+  color: var(--brand-soft);
 }
 
 .mono {

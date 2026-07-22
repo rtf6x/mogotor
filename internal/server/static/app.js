@@ -1,3 +1,14 @@
+const theme = {
+  brand: "#ff5e00",
+  brandSoft: "#fabd6e",
+  text: "#f2f2f7",
+  muted: "#9aa3b2",
+  grid: "rgba(255, 255, 255, 0.08)",
+  ok: "#2ecc71",
+  warn: "#fabd6e",
+  bad: "#e74c3c",
+};
+
 const charts = {};
 const chartDefaults = {
   responsive: true,
@@ -5,18 +16,33 @@ const chartDefaults = {
   animation: false,
   scales: {
     x: {
-      ticks: { color: "#8b949e", maxTicksLimit: 8 },
-      grid: { color: "rgba(48, 54, 61, 0.6)" },
+      ticks: { color: theme.muted, maxTicksLimit: 8 },
+      grid: { color: theme.grid },
     },
     y: {
-      ticks: { color: "#8b949e" },
-      grid: { color: "rgba(48, 54, 61, 0.6)" },
+      ticks: { color: theme.muted },
+      grid: { color: theme.grid },
     },
   },
   plugins: {
-    legend: { labels: { color: "#e6edf3" } },
+    legend: {
+      labels: { color: theme.text, boxWidth: 12, boxHeight: 12 },
+    },
   },
 };
+
+function chartOptions(showLegend = false) {
+  return {
+    ...chartDefaults,
+    plugins: {
+      ...chartDefaults.plugins,
+      legend: {
+        ...chartDefaults.plugins.legend,
+        display: showLegend,
+      },
+    },
+  };
+}
 
 function formatBytes(bytes) {
   if (!bytes) return "0 B";
@@ -71,12 +97,12 @@ function ensureChart(id, label, color) {
         borderWidth: 2,
       }],
     },
-    options: chartDefaults,
+    options: chartOptions(false),
   });
   return charts[id];
 }
 
-function ensureMultiChart(id, datasets) {
+function ensureMultiChart(id, datasets, showLegend = false) {
   const canvas = document.getElementById(id);
   if (charts[id]) {
     return charts[id];
@@ -84,7 +110,7 @@ function ensureMultiChart(id, datasets) {
   charts[id] = new Chart(canvas, {
     type: "line",
     data: { labels: [], datasets },
-    options: chartDefaults,
+    options: chartOptions(showLegend),
   });
   return charts[id];
 }
@@ -139,50 +165,50 @@ function formatUptime(seconds) {
 
 function renderHistory(points) {
   const labels = points.map((point) => formatChartTime(point.timestamp));
-  const cpu = ensureChart("cpu-chart", "CPU %", "#58a6ff");
+  const cpu = ensureChart("cpu-chart", "CPU %", theme.brand);
   updateChart(cpu, labels, points.map((point) => point.cpuPercent));
 
-  const memory = ensureChart("memory-chart", "Memory %", "#3fb950");
+  const memory = ensureChart("memory-chart", "Memory %", theme.ok);
   updateChart(memory, labels, points.map((point) => {
     if (!point.memoryTotalBytes) return 0;
     return (point.memoryUsedBytes / point.memoryTotalBytes) * 100;
   }));
 
-  const disk = ensureChart("disk-chart", "Disk %", "#d29922");
+  const disk = ensureChart("disk-chart", "Disk %", theme.brandSoft);
   updateChart(disk, labels, points.map((point) => point.diskUsedPercent));
 
   const network = ensureMultiChart("network-chart", [
     {
-      label: "Recv B/s",
+      label: "Receive",
       data: [],
-      borderColor: "#58a6ff",
-      backgroundColor: "#58a6ff33",
+      borderColor: theme.brand,
+      backgroundColor: "rgba(255, 94, 0, 0.15)",
       fill: false,
       tension: 0.2,
       pointRadius: 0,
       borderWidth: 2,
     },
     {
-      label: "Send B/s",
+      label: "Send",
       data: [],
-      borderColor: "#f778ba",
-      backgroundColor: "#f778ba33",
+      borderColor: theme.brandSoft,
+      backgroundColor: "rgba(250, 189, 110, 0.15)",
       fill: false,
       tension: 0.2,
       pointRadius: 0,
       borderWidth: 2,
     },
-  ]);
+  ], true);
   updateMultiChart(network, labels, [
     points.map((point) => point.netRecvBps),
     points.map((point) => point.netSendBps),
   ]);
 
   const load = ensureMultiChart("load-chart", [
-    { label: "1m", data: [], borderColor: "#58a6ff", tension: 0.2, pointRadius: 0, borderWidth: 2 },
-    { label: "5m", data: [], borderColor: "#3fb950", tension: 0.2, pointRadius: 0, borderWidth: 2 },
-    { label: "15m", data: [], borderColor: "#d29922", tension: 0.2, pointRadius: 0, borderWidth: 2 },
-  ]);
+    { label: "1 min", data: [], borderColor: theme.brand, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+    { label: "5 min", data: [], borderColor: theme.brandSoft, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+    { label: "15 min", data: [], borderColor: theme.muted, tension: 0.2, pointRadius: 0, borderWidth: 2 },
+  ], true);
   updateMultiChart(load, labels, [
     points.map((point) => point.load1),
     points.map((point) => point.load5),

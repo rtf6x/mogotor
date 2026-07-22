@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mogotor</title>
   <meta name="description" content="Server analytics dashboard with 24-hour metrics, PM2, Docker, and MongoDB monitoring.">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0a0b0f">
   <link rel="canonical" href="https://mogotor.rootfox.cc/">
 
   <meta property="og:type" content="website">
@@ -50,11 +50,26 @@
     <section class="panel">
       <h2>System metrics (24h)</h2>
       <div class="charts">
-        <div class="chart-box"><canvas id="cpu-chart"></canvas></div>
-        <div class="chart-box"><canvas id="memory-chart"></canvas></div>
-        <div class="chart-box"><canvas id="disk-chart"></canvas></div>
-        <div class="chart-box"><canvas id="network-chart"></canvas></div>
-        <div class="chart-box"><canvas id="load-chart"></canvas></div>
+        <div class="chart-box">
+          <h3 class="chart-title">CPU usage</h3>
+          <div class="chart-canvas"><canvas id="cpu-chart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3 class="chart-title">Memory usage</h3>
+          <div class="chart-canvas"><canvas id="memory-chart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3 class="chart-title">Disk usage</h3>
+          <div class="chart-canvas"><canvas id="disk-chart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3 class="chart-title">Network throughput</h3>
+          <div class="chart-canvas"><canvas id="network-chart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3 class="chart-title">Load average</h3>
+          <div class="chart-canvas"><canvas id="load-chart"></canvas></div>
+        </div>
       </div>
     </section>
 
