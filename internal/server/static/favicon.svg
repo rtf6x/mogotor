@@ -1,15 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Mogotor">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#111318"/>
-      <stop offset="1" stop-color="#0a0b0f"/>
+      <stop offset="0" stop-color="#0a0b0f"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5e00" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ff5e00" stop-opacity="0"/>
     </linearGradient>
   </defs>
+
   <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-  <rect x="1" y="1" width="30" height="30" rx="6" fill="none" stroke="#ff5e00" stroke-opacity="0.35" stroke-width="1"/>
-  <rect x="6" y="7" width="4" height="4" rx="1" fill="#ff5e00"/>
-  <rect x="12" y="7" width="14" height="2" rx="1" fill="#f2f2f7" opacity="0.55"/>
-  <rect x="12" y="10.5" width="9" height="2" rx="1" fill="#9aa3b2" opacity="0.45"/>
-  <path d="M6 22 L11 16 L15 19 L21 10 L26 14" fill="none" stroke="#ff5e00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="26" cy="14" r="2" fill="#fabd6e"/>
+
+  <path
+    d="M 4 21
+       C 7 21, 8 17, 11 18
+       C 14 19, 15 15, 18 16
+       C 21 17, 22 13, 25 14
+       C 27 15, 28 12, 28 12
+       L 28 26 L 4 26 Z"
+    fill="url(#area)"/>
+
+  <path
+    d="M 4 21
+       C 7 21, 8 17, 11 18
+       C 14 19, 15 15, 18 16
+       C 21 17, 22 13, 25 14
+       C 27 15, 28 12, 28 12"
+    fill="none"
+    stroke="#ff5e00"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
 </svg>

@@ -1,63 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Mogotor server analytics dashboard">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Mogotor server analytics">
   <defs>
-    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(600 120) scale(520 280)">
-      <stop offset="0" stop-color="#ff5e00" stop-opacity="0.18"/>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(600 180) scale(520 300)">
+      <stop offset="0" stop-color="#ff5e00" stop-opacity="0.14"/>
       <stop offset="1" stop-color="#0a0b0f" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0a0b0f"/>
       <stop offset="1" stop-color="#000000"/>
     </linearGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1a1d24"/>
-      <stop offset="1" stop-color="#111318"/>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5e00" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ff5e00" stop-opacity="0"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
-    </filter>
-    <filter id="brandGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#ff5e00" flood-opacity="0.22"/>
-    </filter>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#page)"/>
+  <rect width="1200" height="630" fill="url(#bg)"/>
   <rect width="1200" height="630" fill="url(#glow)"/>
 
-  <text x="600" y="108" fill="#ff5e00" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="700" text-anchor="middle">Mogotor</text>
-  <text x="600" y="154" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="24" letter-spacing="1.5" text-anchor="middle">Server analytics - last 24 hours</text>
+  <text x="600" y="168" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="76" font-weight="700" text-anchor="middle">Mogotor</text>
+  <text x="600" y="218" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="24" letter-spacing="0.5" text-anchor="middle">Server analytics - last 24 hours</text>
 
-  <g filter="url(#shadow)">
-    <rect x="130" y="205" width="940" height="330" rx="22" fill="url(#panel)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+  <rect x="140" y="270" width="920" height="280" rx="20" fill="rgba(0,0,0,0.42)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
 
-    <rect x="170" y="245" width="180" height="88" rx="14" fill="#111318" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-    <text x="190" y="275" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="16">CPU</text>
-    <text x="190" y="312" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">24.8%</text>
-
-    <rect x="370" y="245" width="180" height="88" rx="14" fill="#111318" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-    <text x="390" y="275" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="16">Memory</text>
-    <text x="390" y="312" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">61.2%</text>
-
-    <rect x="570" y="245" width="180" height="88" rx="14" fill="#111318" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-    <text x="590" y="275" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="16">Disk</text>
-    <text x="590" y="312" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">75.4%</text>
-
-    <rect x="770" y="245" width="260" height="88" rx="14" fill="#111318" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-    <text x="790" y="275" fill="#9aa3b2" font-family="Segoe UI, Arial, sans-serif" font-size="16">Network</text>
-    <text x="790" y="312" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700">1.2 MiB/s</text>
-
-    <rect x="170" y="360" width="420" height="145" rx="16" fill="#0f1116" stroke="rgba(255,94,0,0.22)" stroke-width="1.5"/>
-    <text x="190" y="392" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">CPU usage</text>
-    <path d="M190 470 L240 430 L300 445 L360 395 L420 410 L480 360 L540 380" fill="none" stroke="#ff5e00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M190 470 L240 430 L300 445 L360 395 L420 410 L480 360 L540 380 L540 485 L190 485 Z" fill="#ff5e00" opacity="0.12"/>
-
-    <rect x="610" y="360" width="420" height="145" rx="16" fill="#0f1116" stroke="rgba(255,94,0,0.22)" stroke-width="1.5"/>
-    <text x="630" y="392" fill="#f2f2f7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Network throughput</text>
-    <path d="M630 455 L690 420 L750 440 L810 400 L870 415 L930 385 L990 410" fill="none" stroke="#ff5e00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M630 470 L700 450 L760 458 L820 430 L880 438 L940 420 L990 432" fill="none" stroke="#fabd6e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+    <line x1="180" y1="360" x2="1020" y2="360"/>
+    <line x1="180" y1="400" x2="1020" y2="400"/>
+    <line x1="180" y1="440" x2="1020" y2="440"/>
+    <line x1="180" y1="480" x2="1020" y2="480"/>
   </g>
 
-  <g filter="url(#brandGlow)">
-    <rect x="470" y="560" width="260" height="44" rx="22" fill="#ff5e00"/>
-  </g>
-  <text x="600" y="589" fill="#111318" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" text-anchor="middle">mogotor.rootfox.cc</text>
+  <path
+    d="M 180 468
+       C 240 468, 260 430, 320 438
+       C 380 446, 400 412, 460 420
+       C 520 428, 540 395, 600 402
+       C 660 409, 680 378, 740 386
+       C 800 394, 820 362, 880 370
+       C 940 378, 960 348, 1020 356
+       L 1020 508 L 180 508 Z"
+    fill="url(#area)"/>
+
+  <path
+    d="M 180 468
+       C 240 468, 260 430, 320 438
+       C 380 446, 400 412, 460 420
+       C 520 428, 540 395, 600 402
+       C 660 409, 680 378, 740 386
+       C 800 394, 820 362, 880 370
+       C 940 378, 960 348, 1020 356"
+    fill="none"
+    stroke="#ff5e00"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
 </svg>
