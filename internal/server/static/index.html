@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mogotor</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Mogotor</h1>
+      <p class="subtitle">Server analytics · last 24 hours</p>
+    </div>
+    <div class="meta">
+      <span id="last-updated">—</span>
+      <span id="sample-age" class="badge">—</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="cards" id="summary-cards"></section>
+
+    <section class="panel">
+      <h2>System metrics (24h)</h2>
+      <div class="charts">
+        <div class="chart-box"><canvas id="cpu-chart"></canvas></div>
+        <div class="chart-box"><canvas id="memory-chart"></canvas></div>
+        <div class="chart-box"><canvas id="disk-chart"></canvas></div>
+        <div class="chart-box"><canvas id="network-chart"></canvas></div>
+        <div class="chart-box"><canvas id="load-chart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>PM2 processes</h2>
+        <div id="pm2-status" class="status-line"></div>
+        <div class="table-wrap">
+          <table id="pm2-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Restarts</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Docker containers</h2>
+        <div id="docker-status" class="status-line"></div>
+        <div class="table-wrap">
+          <table id="docker-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>PIDs</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel">
+        <h2>System services</h2>
+        <div id="services-list" class="service-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>MongoDB</h2>
+        <div id="mongo-panel" class="mongo-panel"></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
