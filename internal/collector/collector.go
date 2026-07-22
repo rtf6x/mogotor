@@ -52,7 +52,7 @@ func (c *Collector) collect() {
 	docker := CollectDocker("docker")
 	services := CollectServices(c.cfg.Services)
 	mongo := CollectMongo(c.cfg.MongoURI)
-	jenkins := CollectJenkins()
+	dplo := CollectDplo(c.cfg.DploDataDir, c.cfg.DploHealthURL)
 	ssh := CollectSSH()
 
 	snapshot := models.Snapshot{
@@ -62,7 +62,7 @@ func (c *Collector) collect() {
 		PM2:       pm2,
 		Docker:    docker,
 		Services:  services,
-		Jenkins:   jenkins,
+		Dplo:      dplo,
 		Mongo:     mongo,
 		SSH:       ssh,
 	}

@@ -78,26 +78,22 @@ type ServiceStatus struct {
 	Error       string `json:"error,omitempty"`
 }
 
-type JenkinsPlugin struct {
-	Name      string `json:"name"`
-	SizeBytes uint64 `json:"sizeBytes"`
-}
-
-type JenkinsSnapshot struct {
-	Available      bool            `json:"available"`
-	Error          string          `json:"error,omitempty"`
-	PID            int             `json:"pid,omitempty"`
-	RSSBytes       uint64          `json:"rssBytes,omitempty"`
-	CgroupBytes    uint64          `json:"cgroupBytes,omitempty"`
-	HeapMaxMB      int             `json:"heapMaxMb,omitempty"`
-	HeapUsedMB     int             `json:"heapUsedMb,omitempty"`
-	NativeUsedMB   int             `json:"nativeUsedMb,omitempty"`
-	PluginCount    int             `json:"pluginCount,omitempty"`
-	TopPlugins     []JenkinsPlugin `json:"topPlugins,omitempty"`
-	JobCount       int             `json:"jobCount,omitempty"`
-	WorkspaceBytes uint64          `json:"workspaceBytes,omitempty"`
-	PluginsBytes   uint64          `json:"pluginsBytes,omitempty"`
-	DataDir        string          `json:"dataDir,omitempty"`
+type DploSnapshot struct {
+	Available       bool   `json:"available"`
+	Error           string `json:"error,omitempty"`
+	PID             int    `json:"pid,omitempty"`
+	RSSBytes        uint64 `json:"rssBytes,omitempty"`
+	CgroupBytes     uint64 `json:"cgroupBytes,omitempty"`
+	ProjectCount    int    `json:"projectCount,omitempty"`
+	EnabledCount    int    `json:"enabledCount,omitempty"`
+	RunCount        int    `json:"runCount,omitempty"`
+	RunningCount    int    `json:"runningCount,omitempty"`
+	DataBytes       uint64 `json:"dataBytes,omitempty"`
+	DataDir         string `json:"dataDir,omitempty"`
+	APIHealthy      bool   `json:"apiHealthy,omitempty"`
+	RunnerBusy      bool   `json:"runnerBusy,omitempty"`
+	ActiveProjectID string `json:"activeProjectId,omitempty"`
+	ActiveRunID     string `json:"activeRunId,omitempty"`
 }
 
 type MongoSnapshot struct {
@@ -141,7 +137,7 @@ type Snapshot struct {
 	PM2       PM2Snapshot     `json:"pm2"`
 	Docker    DockerSnapshot  `json:"docker"`
 	Services  []ServiceStatus `json:"services"`
-	Jenkins   JenkinsSnapshot `json:"jenkins"`
+	Dplo      DploSnapshot    `json:"dplo"`
 	Mongo     MongoSnapshot   `json:"mongo"`
 	SSH       SSHSnapshot     `json:"ssh"`
 }

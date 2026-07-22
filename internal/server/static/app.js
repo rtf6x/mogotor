@@ -400,6 +400,28 @@ function renderServices(services) {
   `).join("");
 }
 
+function renderDplo(dplo) {
+  const root = document.getElementById("dplo-panel");
+  if (!dplo || (!dplo.available && !dplo.apiHealthy && !dplo.projectCount)) {
+    root.innerHTML = `<div class="service-item"><div><div class="service-name">dplo</div><div class="service-desc">${dplo?.error || "Unavailable"}</div></div><div class="service-status"><span class="pill bad">offline</span></div></div>`;
+    return;
+  }
+
+  const rows = [
+    ["Service", dplo.available ? `running · PID ${dplo.pid}` : (dplo.error || "stopped")],
+    ["API", dplo.apiHealthy ? "healthy" : "unreachable"],
+    ["Memory", dplo.rssBytes ? formatBytes(dplo.rssBytes) : (dplo.cgroupBytes ? formatBytes(dplo.cgroupBytes) : "—")],
+    ["Projects", dplo.projectCount ? `${dplo.enabledCount ?? dplo.projectCount} enabled / ${dplo.projectCount} total` : "0"],
+    ["Runs", dplo.runCount ? `${dplo.runCount} total` : "0"],
+    ["Runner", dplo.runnerBusy ? `busy${dplo.activeProjectId ? ` · ${dplo.activeProjectId}` : ""}` : "idle"],
+    ["Data", dplo.dataBytes ? formatBytes(dplo.dataBytes) : "—"],
+  ];
+
+  root.innerHTML = rows.map(([label, value]) => `
+    <div class="mongo-item"><span>${label}</span><strong>${value}</strong></div>
+  `).join("") + (dplo.dataDir ? `<div class="service-desc">data: ${dplo.dataDir}</div>` : "");
+}
+
 function renderMongo(mongo) {
   const root = document.getElementById("mongo-panel");
   if (!mongo.available) {
@@ -493,6 +515,7 @@ async function refresh() {
   renderPM2(snapshot.pm2);
   renderDocker(snapshot.docker);
   renderServices(snapshot.services || []);
+  renderDplo(snapshot.dplo);
   renderMongo(snapshot.mongo);
   renderSSH(snapshot.ssh);
 }
