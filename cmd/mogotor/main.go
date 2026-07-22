@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/rtf6x/mogotor/internal/collector"
 	"github.com/rtf6x/mogotor/internal/config"
 	"github.com/rtf6x/mogotor/internal/server"
@@ -18,13 +19,25 @@ import (
 
 func main() {
 	cfg := config.Load()
-	log.Printf("mogotor starting on %s (data: %s)", cfg.Addr, cfg.DataDir)
+	log.Printf("mogotor starting on %s (data: %s, redis: %s db=%d)", cfg.Addr, cfg.DataDir, cfg.RedisAddr, cfg.RedisDB)
 
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		log.Fatalf("create data dir: %v", err)
 	}
 
-	history := store.NewHistory(cfg.Retention, filepath.Join(cfg.DataDir, "history.json"))
+	ctx := context.Background()
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		log.Fatalf("redis: %v", err)
+	}
+	defer rdb.Close()
+
+	history := store.NewHistory(cfg.Retention, rdb)
+	history.SetLegacyPath(filepath.Join(cfg.DataDir, "history.json"))
 	if err := history.Load(); err != nil {
 		log.Printf("warning: could not load history: %v", err)
 	}
@@ -32,9 +45,9 @@ func main() {
 	latest := store.NewLatest()
 	col := collector.New(cfg, history, latest)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go col.Run(ctx)
+	go col.Run(runCtx)
 
 	srv := server.New(history, latest)
 	httpServer := &http.Server{

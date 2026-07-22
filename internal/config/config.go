@@ -12,12 +12,17 @@ const (
 	DefaultPort            = 8188
 	DefaultCollectInterval = time.Minute
 	DefaultRetention       = 24 * time.Hour
+	DefaultRedisAddr       = "127.0.0.1:6379"
+	DefaultRedisDB         = 4
 )
 
 type Config struct {
 	Addr            string
 	DataDir         string
 	MongoURI        string
+	RedisAddr       string
+	RedisPassword   string
+	RedisDB         int
 	CollectInterval time.Duration
 	Retention       time.Duration
 	Services        []string
@@ -29,6 +34,9 @@ func Load() Config {
 		Addr:            envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
 		DataDir:         dataDir,
 		MongoURI:        resolveMongoURI(dataDir),
+		RedisAddr:       envOr("MOGOTOR_REDIS_ADDR", DefaultRedisAddr),
+		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
+		RedisDB:         envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
 		CollectInterval: DefaultCollectInterval,
 		Retention:       DefaultRetention,
 		Services: []string{
@@ -59,6 +67,18 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func envIntOr(key string, fallback int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fallback
+	}
+	return n
 }
 
 func defaultDataDir() string {

@@ -9,6 +9,9 @@ Group=@USER@
 WorkingDirectory=/opt/mogotor
 Environment=MOGOTOR_ADDR=:8188
 Environment=MOGOTOR_DATA_DIR=/var/lib/mogotor
+Environment=MOGOTOR_REDIS_ADDR=127.0.0.1:6379
+Environment=MOGOTOR_REDIS_DB=4
+EnvironmentFile=-/etc/mogotor/env
 ExecStart=/opt/mogotor/mogotor
 Restart=on-failure
 RestartSec=5

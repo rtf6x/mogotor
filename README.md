@@ -15,13 +15,15 @@ Open http://localhost:8188
 
 Listen address defaults to `:8188`. Override with `MOGOTOR_ADDR`, for example `:8080`.
 
+History is stored in Redis (database 4 by default). Set `MOGOTOR_REDIS_ADDR` (default `127.0.0.1:6379`), `REDIS_PASSWORD`, and optionally `MOGOTOR_REDIS_DB`.
+
 ## Deploy
 
 ```bash
 sudo ./deploy/install.sh
 ```
 
-Installs a systemd service, binary to `/opt/mogotor`, and history data to `/var/lib/mogotor`.
+Installs a systemd service, binary to `/opt/mogotor`, and history data in Redis. Put `REDIS_PASSWORD` in `/etc/mogotor/env`.
 
 For Docker stats, the service user needs access to the Docker socket (group membership or `sudo docker`).
 

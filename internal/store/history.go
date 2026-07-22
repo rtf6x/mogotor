@@ -1,22 +1,26 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/rtf6x/mogotor/internal/models"
 )
 
+const historyKey = "mogotor:history"
+
 type History struct {
-	mu         sync.RWMutex
-	retention  time.Duration
-	points     []models.SystemSnapshot
-	lastNet    netCounters
-	persistMu  sync.Mutex
-	persistPath string
+	mu          sync.RWMutex
+	retention   time.Duration
+	points      []models.SystemSnapshot
+	lastNet     netCounters
+	redis       *redis.Client
+	legacyPath  string
 }
 
 type netCounters struct {
@@ -25,70 +29,90 @@ type netCounters struct {
 	at   time.Time
 }
 
-func NewHistory(retention time.Duration, persistPath string) *History {
+func NewHistory(retention time.Duration, rdb *redis.Client) *History {
 	return &History{
-		retention:   retention,
-		persistPath: persistPath,
+		retention: retention,
+		redis:     rdb,
 	}
 }
 
+func (h *History) SetLegacyPath(path string) {
+	h.legacyPath = path
+}
+
 func (h *History) Load() error {
-	if h.persistPath == "" {
+	if h.redis == nil {
 		return nil
 	}
 
-	data, err := os.ReadFile(h.persistPath)
+	ctx := context.Background()
+	cutoff := scoreFor(time.Now().Add(-h.retention))
+	results, err := h.redis.ZRangeByScore(ctx, historyKey, &redis.ZRangeBy{
+		Min: fmt.Sprintf("%f", cutoff),
+		Max: "+inf",
+	}).Result()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
 
-	var points []models.SystemSnapshot
-	if err := json.Unmarshal(data, &points); err != nil {
-		return err
+	points := make([]models.SystemSnapshot, 0, len(results))
+	for _, raw := range results {
+		var point models.SystemSnapshot
+		if err := json.Unmarshal([]byte(raw), &point); err != nil {
+			return err
+		}
+		points = append(points, point)
+	}
+
+	if len(points) == 0 && h.legacyPath != "" {
+		if err := h.migrateLegacyFile(ctx); err != nil {
+			return err
+		}
+		return h.Load()
 	}
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.points = trim(points, h.retention)
+	restoreLastNet(&h.lastNet, h.points)
 	return nil
 }
 
 func (h *History) Persist() error {
-	if h.persistPath == "" {
+	if h.redis == nil {
 		return nil
 	}
 
-	h.persistMu.Lock()
-	defer h.persistMu.Unlock()
-
-	h.mu.RLock()
-	data, err := json.Marshal(h.points)
-	h.mu.RUnlock()
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(h.persistPath), 0o755); err != nil {
-		return err
-	}
-
-	tmp := h.persistPath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, h.persistPath)
+	ctx := context.Background()
+	cutoff := scoreFor(time.Now().Add(-h.retention))
+	return h.redis.ZRemRangeByScore(ctx, historyKey, "-inf", fmt.Sprintf("%f", cutoff)).Err()
 }
 
 func (h *History) Add(snapshot models.SystemSnapshot) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	snapshot = applyNetRates(snapshot, &h.lastNet)
 	h.points = append(h.points, snapshot)
 	h.points = trim(h.points, h.retention)
+	h.mu.Unlock()
+
+	if h.redis == nil {
+		return
+	}
+
+	data, err := json.Marshal(snapshot)
+	if err != nil {
+		return
+	}
+
+	ctx := context.Background()
+	pipe := h.redis.Pipeline()
+	pipe.ZAdd(ctx, historyKey, redis.Z{
+		Score:  scoreFor(snapshot.Timestamp),
+		Member: string(data),
+	})
+	cutoff := scoreFor(time.Now().Add(-h.retention))
+	pipe.ZRemRangeByScore(ctx, historyKey, "-inf", fmt.Sprintf("%f", cutoff))
+	_, _ = pipe.Exec(ctx)
 }
 
 func (h *History) Points() []models.SystemSnapshot {
@@ -102,6 +126,52 @@ func (h *History) Points() []models.SystemSnapshot {
 
 func (h *History) RetentionFrom() time.Time {
 	return time.Now().Add(-h.retention)
+}
+
+func (h *History) migrateLegacyFile(ctx context.Context) error {
+	data, err := os.ReadFile(h.legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	var points []models.SystemSnapshot
+	if err := json.Unmarshal(data, &points); err != nil {
+		return err
+	}
+	if len(points) == 0 {
+		return nil
+	}
+
+	pipe := h.redis.Pipeline()
+	for _, point := range points {
+		raw, err := json.Marshal(point)
+		if err != nil {
+			return err
+		}
+		pipe.ZAdd(ctx, historyKey, redis.Z{
+			Score:  scoreFor(point.Timestamp),
+			Member: string(raw),
+		})
+	}
+	_, err = pipe.Exec(ctx)
+	return err
+}
+
+func scoreFor(ts time.Time) float64 {
+	return float64(ts.UnixMilli())
+}
+
+func restoreLastNet(last *netCounters, points []models.SystemSnapshot) {
+	if len(points) == 0 {
+		return
+	}
+	point := points[len(points)-1]
+	last.sent = point.NetBytesSent
+	last.recv = point.NetBytesRecv
+	last.at = point.Timestamp
 }
 
 func applyNetRates(snapshot models.SystemSnapshot, last *netCounters) models.SystemSnapshot {
