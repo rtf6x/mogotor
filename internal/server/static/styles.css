@@ -104,6 +104,10 @@ main {
   box-shadow: var(--card-shadow);
 }
 
+.panel h2 {
+  margin-bottom: 1rem;
+}
+
 .charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
