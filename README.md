@@ -15,7 +15,7 @@ Open http://localhost:8188
 
 Listen address defaults to `:8188`. Override with `MOGOTOR_ADDR`, for example `:8080`.
 
-History is stored in Redis (database 4 by default). Set `MOGOTOR_REDIS_ADDR` (default `127.0.0.1:6379`), `REDIS_PASSWORD`, and optionally `MOGOTOR_REDIS_DB`.
+History is stored in Redis (database 4 by default). Set `MOGOTOR_REDIS_ADDR` or `REDIS_ADDR` (default `127.0.0.1:63719`), `REDIS_PASSWORD`, and optionally `MOGOTOR_REDIS_DB`.
 
 ## Deploy
 

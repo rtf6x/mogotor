@@ -9,6 +9,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("MOGOTOR_ADDR", "")
 	t.Setenv("MOGOTOR_DATA_DIR", "")
 	t.Setenv("MOGOTOR_REDIS_ADDR", "")
+	t.Setenv("REDIS_ADDR", "")
 	t.Setenv("REDIS_PASSWORD", "")
 	t.Setenv("MOGOTOR_REDIS_DB", "")
 
@@ -27,5 +28,15 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if len(cfg.Services) != 6 {
 		t.Fatalf("expected 6 default services, got %d", len(cfg.Services))
+	}
+}
+
+func TestLoadRedisAddrFromSharedEnv(t *testing.T) {
+	t.Setenv("MOGOTOR_REDIS_ADDR", "")
+	t.Setenv("REDIS_ADDR", "llm.rootfox.cc:63719")
+
+	cfg := Load()
+	if cfg.RedisAddr != "llm.rootfox.cc:63719" {
+		t.Fatalf("expected shared redis addr, got %s", cfg.RedisAddr)
 	}
 }

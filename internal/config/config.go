@@ -12,7 +12,7 @@ const (
 	DefaultPort            = 8188
 	DefaultCollectInterval = time.Minute
 	DefaultRetention       = 24 * time.Hour
-	DefaultRedisAddr       = "127.0.0.1:6379"
+	DefaultRedisAddr       = "127.0.0.1:63719"
 	DefaultRedisDB         = 4
 )
 
@@ -34,7 +34,7 @@ func Load() Config {
 		Addr:            envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
 		DataDir:         dataDir,
 		MongoURI:        resolveMongoURI(dataDir),
-		RedisAddr:       envOr("MOGOTOR_REDIS_ADDR", DefaultRedisAddr),
+		RedisAddr:       resolveRedisAddr(),
 		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
 		RedisDB:         envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
 		CollectInterval: DefaultCollectInterval,
@@ -60,6 +60,16 @@ func resolveMongoURI(dataDir string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(data))
+}
+
+func resolveRedisAddr() string {
+	if addr := strings.TrimSpace(os.Getenv("MOGOTOR_REDIS_ADDR")); addr != "" {
+		return addr
+	}
+	if addr := strings.TrimSpace(os.Getenv("REDIS_ADDR")); addr != "" {
+		return addr
+	}
+	return DefaultRedisAddr
 }
 
 func envOr(key, fallback string) string {
