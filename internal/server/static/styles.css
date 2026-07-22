@@ -6,9 +6,9 @@
   --bg: #0a0b0f;
   --panel: #111318;
   --panel-elevated: #1a1d24;
-  --surface-panel: rgba(0, 0, 0, 0.24);
+  --surface-panel: rgba(0, 0, 0, 0.42);
   --surface-panel-border: rgba(255, 255, 255, 0.08);
-  --surface-card: rgba(0, 0, 0, 0.24);
+  --surface-card: rgba(0, 0, 0, 0.42);
   --surface-nested: rgba(255, 255, 255, 0.04);
   --border: rgba(255, 255, 255, 0.1);
   --border-faint: rgba(255, 255, 255, 0.06);
