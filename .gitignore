@@ -15,5 +15,5 @@
 # vendor/
 
 bin/
-mogotor
+/mogotor
 data/
