@@ -6,7 +6,11 @@
   --bg: #0a0b0f;
   --panel: #111318;
   --panel-elevated: #1a1d24;
-  --border: rgba(255, 255, 255, 0.12);
+  --surface-panel: linear-gradient(160deg, rgba(26, 29, 36, 0.94) 0%, rgba(14, 16, 20, 0.9) 100%);
+  --surface-card: linear-gradient(160deg, rgba(22, 25, 31, 0.88) 0%, rgba(11, 13, 17, 0.84) 100%);
+  --surface-nested: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-faint: rgba(255, 255, 255, 0.06);
   --border-brand: rgba(var(--brand-rgb), 0.28);
   --text: #f2f2f7;
   --muted: #9aa3b2;
@@ -78,11 +82,13 @@ main {
 }
 
 .card {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--surface-card);
+  border: 1px solid var(--border-faint);
   border-radius: 12px;
   padding: 1rem;
   box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .card-label {
@@ -103,16 +109,24 @@ main {
 }
 
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-faint);
   border-radius: 14px;
   padding: 1rem 1rem 1.25rem;
   margin-bottom: 1.5rem;
   box-shadow: var(--card-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .panel h2 {
   margin-bottom: 1rem;
+}
+
+.panel-note {
+  margin: -0.5rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .charts {
@@ -122,10 +136,22 @@ main {
 }
 
 .chart-box {
-  background: var(--panel-elevated);
-  border: 1px solid var(--border);
+  background: var(--surface-card);
+  border: 1px solid var(--border-faint);
   border-radius: 10px;
   padding: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.chart-box:hover,
+.chart-box:focus-visible {
+  border-color: var(--border-brand);
+  background: linear-gradient(160deg, rgba(32, 35, 42, 0.94) 0%, rgba(16, 18, 23, 0.9) 100%);
+  box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.18);
+  outline: none;
 }
 
 .chart-title {
@@ -138,6 +164,81 @@ main {
 .chart-canvas {
   position: relative;
   height: 190px;
+}
+
+.chart-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.chart-modal[hidden] {
+  display: none;
+}
+
+.chart-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.chart-modal-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(var(--brand-rgb), 0.12) 0%, transparent 40%),
+    linear-gradient(180deg, #0a0b0f 0%, #000000 100%);
+}
+
+.chart-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-faint);
+  background: rgba(10, 11, 15, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.chart-modal-header h2 {
+  font-size: 1.25rem;
+}
+
+.chart-modal-close {
+  border: 1px solid var(--border-faint);
+  background: var(--surface-nested);
+  color: var(--text);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chart-modal-close:hover {
+  border-color: var(--border-brand);
+  color: var(--brand);
+}
+
+.chart-modal-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 .grid-2 {
@@ -159,7 +260,7 @@ table {
 th, td {
   text-align: left;
   padding: 0.55rem 0.4rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-faint);
 }
 
 th {
@@ -188,9 +289,11 @@ th {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-faint);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-nested);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .service-status {
@@ -239,6 +342,11 @@ th {
 .mono {
   font-family: "SF Mono", "Consolas", monospace;
   font-size: 0.88rem;
+}
+
+.ssh-attempted-user {
+  color: var(--brand-soft);
+  font-weight: 600;
 }
 
 @media (max-width: 640px) {

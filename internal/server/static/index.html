@@ -48,25 +48,26 @@
     <section class="cards" id="summary-cards"></section>
 
     <section class="panel">
-      <h2>System metrics (24h)</h2>
+      <h2>System metrics</h2>
+      <p class="panel-note">Last hour preview · click a chart for 24 hours</p>
       <div class="charts">
-        <div class="chart-box">
+        <div class="chart-box" data-chart="cpu" role="button" tabindex="0" aria-label="CPU usage, open 24 hour chart">
           <h3 class="chart-title">CPU usage</h3>
           <div class="chart-canvas"><canvas id="cpu-chart"></canvas></div>
         </div>
-        <div class="chart-box">
+        <div class="chart-box" data-chart="memory" role="button" tabindex="0" aria-label="Memory usage, open 24 hour chart">
           <h3 class="chart-title">Memory usage</h3>
           <div class="chart-canvas"><canvas id="memory-chart"></canvas></div>
         </div>
-        <div class="chart-box">
+        <div class="chart-box" data-chart="disk" role="button" tabindex="0" aria-label="Disk usage, open 24 hour chart">
           <h3 class="chart-title">Disk usage</h3>
           <div class="chart-canvas"><canvas id="disk-chart"></canvas></div>
         </div>
-        <div class="chart-box">
+        <div class="chart-box" data-chart="network" role="button" tabindex="0" aria-label="Network throughput, open 24 hour chart">
           <h3 class="chart-title">Network throughput</h3>
           <div class="chart-canvas"><canvas id="network-chart"></canvas></div>
         </div>
-        <div class="chart-box">
+        <div class="chart-box" data-chart="load" role="button" tabindex="0" aria-label="Load average, open 24 hour chart">
           <h3 class="chart-title">Load average</h3>
           <div class="chart-canvas"><canvas id="load-chart"></canvas></div>
         </div>
@@ -151,7 +152,7 @@
             <thead>
               <tr>
                 <th>Time</th>
-                <th>User</th>
+                <th>Username</th>
                 <th>IP</th>
                 <th>Type</th>
               </tr>
@@ -162,5 +163,18 @@
       </div>
     </section>
   </main>
+
+  <div id="chart-modal" class="chart-modal" hidden>
+    <div class="chart-modal-backdrop" data-close-modal></div>
+    <div class="chart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="chart-modal-title">
+      <div class="chart-modal-header">
+        <h2 id="chart-modal-title"></h2>
+        <button type="button" id="chart-modal-close" class="chart-modal-close" aria-label="Close chart">×</button>
+      </div>
+      <div class="chart-modal-canvas">
+        <canvas id="chart-modal-canvas"></canvas>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -9,7 +9,57 @@ const theme = {
   bad: "#e74c3c",
 };
 
+const PREVIEW_HOURS = 1;
+
+const CHART_SPECS = {
+  cpu: {
+    id: "cpu-chart",
+    title: "CPU usage",
+    multi: false,
+    datasets: [{ label: "CPU %", color: theme.brand, fill: true, value: (point) => point.cpuPercent }],
+  },
+  memory: {
+    id: "memory-chart",
+    title: "Memory usage",
+    multi: false,
+    datasets: [{
+      label: "Memory %",
+      color: theme.ok,
+      fill: true,
+      value: (point) => (point.memoryTotalBytes ? (point.memoryUsedBytes / point.memoryTotalBytes) * 100 : 0),
+    }],
+  },
+  disk: {
+    id: "disk-chart",
+    title: "Disk usage",
+    multi: false,
+    datasets: [{ label: "Disk %", color: theme.brandSoft, fill: true, value: (point) => point.diskUsedPercent }],
+  },
+  network: {
+    id: "network-chart",
+    title: "Network throughput",
+    multi: true,
+    datasets: [
+      { label: "Receive", color: theme.brand, fill: false, value: (point) => point.netRecvBps },
+      { label: "Send", color: theme.brandSoft, fill: false, value: (point) => point.netSendBps },
+    ],
+  },
+  load: {
+    id: "load-chart",
+    title: "Load average",
+    multi: true,
+    datasets: [
+      { label: "1 min", color: theme.brand, fill: false, value: (point) => point.load1 },
+      { label: "5 min", color: theme.brandSoft, fill: false, value: (point) => point.load5 },
+      { label: "15 min", color: theme.muted, fill: false, value: (point) => point.load15 },
+    ],
+  },
+};
+
 const charts = {};
+let historyPoints = [];
+let modalChart = null;
+let activeChartKey = null;
 const chartDefaults = {
   responsive: true,
   maintainAspectRatio: false,
@@ -77,56 +127,130 @@ function statusClass(state) {
   return "warn";
 }
 
-function ensureChart(id, label, color) {
-  const canvas = document.getElementById(id);
-  if (charts[id]) {
-    return charts[id];
+function pointsInLastHours(points, hours) {
+  if (!points.length) {
+    return [];
   }
-  charts[id] = new Chart(canvas, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label,
-        data: [],
-        borderColor: color,
-        backgroundColor: `${color}33`,
-        fill: true,
-        tension: 0.2,
-        pointRadius: 0,
-        borderWidth: 2,
-      }],
-    },
-    options: chartOptions(false),
-  });
-  return charts[id];
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  return points.filter((point) => new Date(point.timestamp).getTime() >= cutoff);
 }
 
-function ensureMultiChart(id, datasets, showLegend = false) {
-  const canvas = document.getElementById(id);
-  if (charts[id]) {
-    return charts[id];
-  }
-  charts[id] = new Chart(canvas, {
+function buildChartData(points, spec) {
+  const labels = points.map((point) => formatChartTime(point.timestamp));
+  const datasets = spec.datasets.map((dataset) => ({
+    label: dataset.label,
+    data: points.map((point) => dataset.value(point)),
+    borderColor: dataset.color,
+    backgroundColor: dataset.fill ? `${dataset.color}33` : "transparent",
+    fill: !!dataset.fill,
+    tension: 0.2,
+    pointRadius: 0,
+    borderWidth: 2,
+  }));
+  return { labels, datasets };
+}
+
+function createChart(canvas, spec, showLegend = false) {
+  return new Chart(canvas, {
     type: "line",
-    data: { labels: [], datasets },
+    data: buildChartData([], spec),
     options: chartOptions(showLegend),
   });
-  return charts[id];
 }
 
-function updateChart(chart, labels, values) {
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = values;
-  chart.update();
-}
-
-function updateMultiChart(chart, labels, series) {
-  chart.data.labels = labels;
-  series.forEach((values, index) => {
-    chart.data.datasets[index].data = values;
+function updateChartInstance(chart, points, spec) {
+  const data = buildChartData(points, spec);
+  chart.data.labels = data.labels;
+  chart.data.datasets.forEach((dataset, index) => {
+    dataset.data = data.datasets[index].data;
   });
   chart.update();
+}
+
+function ensurePreviewChart(spec) {
+  if (charts[spec.id]) {
+    return charts[spec.id];
+  }
+  const canvas = document.getElementById(spec.id);
+  charts[spec.id] = createChart(canvas, spec, spec.multi);
+  return charts[spec.id];
+}
+
+function renderHistory(points) {
+  historyPoints = points;
+  const previewPoints = pointsInLastHours(points, PREVIEW_HOURS);
+
+  Object.values(CHART_SPECS).forEach((spec) => {
+    const chart = ensurePreviewChart(spec);
+    updateChartInstance(chart, previewPoints, spec);
+  });
+
+  refreshModalChart();
+}
+
+function openChartModal(chartKey) {
+  const spec = CHART_SPECS[chartKey];
+  if (!spec) {
+    return;
+  }
+
+  activeChartKey = chartKey;
+  const modal = document.getElementById("chart-modal");
+  document.getElementById("chart-modal-title").textContent = `${spec.title} · 24 hours`;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+
+  const canvas = document.getElementById("chart-modal-canvas");
+  if (modalChart) {
+    modalChart.destroy();
+    modalChart = null;
+  }
+  modalChart = createChart(canvas, spec, spec.multi);
+  updateChartInstance(modalChart, historyPoints, spec);
+  requestAnimationFrame(() => modalChart.resize());
+}
+
+function closeChartModal() {
+  const modal = document.getElementById("chart-modal");
+  if (modal.hidden) {
+    return;
+  }
+  modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  activeChartKey = null;
+}
+
+function refreshModalChart() {
+  if (!activeChartKey || !modalChart) {
+    return;
+  }
+  const spec = CHART_SPECS[activeChartKey];
+  if (!spec) {
+    return;
+  }
+  updateChartInstance(modalChart, historyPoints, spec);
+}
+
+function initChartModal() {
+  document.querySelectorAll(".chart-box[data-chart]").forEach((box) => {
+    box.addEventListener("click", () => openChartModal(box.dataset.chart));
+    box.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openChartModal(box.dataset.chart);
+      }
+    });
+  });
+
+  document.getElementById("chart-modal-close").addEventListener("click", closeChartModal);
+  document.querySelectorAll("[data-close-modal]").forEach((element) => {
+    element.addEventListener("click", closeChartModal);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeChartModal();
+    }
+  });
 }
 
 function renderSummary(snapshot) {
@@ -161,59 +285,6 @@ function formatUptime(seconds) {
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
-}
-
-function renderHistory(points) {
-  const labels = points.map((point) => formatChartTime(point.timestamp));
-  const cpu = ensureChart("cpu-chart", "CPU %", theme.brand);
-  updateChart(cpu, labels, points.map((point) => point.cpuPercent));
-
-  const memory = ensureChart("memory-chart", "Memory %", theme.ok);
-  updateChart(memory, labels, points.map((point) => {
-    if (!point.memoryTotalBytes) return 0;
-    return (point.memoryUsedBytes / point.memoryTotalBytes) * 100;
-  }));
-
-  const disk = ensureChart("disk-chart", "Disk %", theme.brandSoft);
-  updateChart(disk, labels, points.map((point) => point.diskUsedPercent));
-
-  const network = ensureMultiChart("network-chart", [
-    {
-      label: "Receive",
-      data: [],
-      borderColor: theme.brand,
-      backgroundColor: "rgba(255, 94, 0, 0.15)",
-      fill: false,
-      tension: 0.2,
-      pointRadius: 0,
-      borderWidth: 2,
-    },
-    {
-      label: "Send",
-      data: [],
-      borderColor: theme.brandSoft,
-      backgroundColor: "rgba(250, 189, 110, 0.15)",
-      fill: false,
-      tension: 0.2,
-      pointRadius: 0,
-      borderWidth: 2,
-    },
-  ], true);
-  updateMultiChart(network, labels, [
-    points.map((point) => point.netRecvBps),
-    points.map((point) => point.netSendBps),
-  ]);
-
-  const load = ensureMultiChart("load-chart", [
-    { label: "1 min", data: [], borderColor: theme.brand, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-    { label: "5 min", data: [], borderColor: theme.brandSoft, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-    { label: "15 min", data: [], borderColor: theme.muted, tension: 0.2, pointRadius: 0, borderWidth: 2 },
-  ], true);
-  updateMultiChart(load, labels, [
-    points.map((point) => point.load1),
-    points.map((point) => point.load5),
-    points.map((point) => point.load15),
-  ]);
 }
 
 function renderPM2(pm2) {
@@ -309,8 +380,8 @@ function renderMongo(mongo) {
 }
 
 function sshKindLabel(kind) {
-  if (kind === "failed_password") return "failed password";
-  if (kind === "invalid_user") return "invalid user";
+  if (kind === "failed_password") return "wrong password";
+  if (kind === "invalid_user") return "unknown user";
   return kind || "—";
 }
 
@@ -348,7 +419,7 @@ function renderSSH(ssh) {
   failureBody.innerHTML = (ssh.failures || []).map((event) => `
     <tr>
       <td>${formatTime(event.timestamp)}</td>
-      <td>${event.user}</td>
+      <td class="${event.kind === "invalid_user" ? "mono ssh-attempted-user" : ""}">${event.user || "—"}</td>
       <td class="mono">${event.ip}</td>
       <td><span class="pill bad">${sshKindLabel(event.kind)}</span></td>
     </tr>
@@ -377,4 +448,5 @@ async function refresh() {
 }
 
 refresh();
+initChartModal();
 setInterval(refresh, 30000);

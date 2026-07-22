@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	authAcceptedRE = regexp.MustCompile(`Accepted (\w+) for (\S+) from ([0-9a-fA-F:.]+)`)
-	authFailedRE   = regexp.MustCompile(`Failed password for (?:invalid user )?(\S+) from ([0-9a-fA-F:.]+)`)
-	authInvalidRE  = regexp.MustCompile(`Invalid user (\S+) from ([0-9a-fA-F:.]+)`)
-	lastLoginRE    = regexp.MustCompile(`^(\S+)\s+(\S+)\s+(\S+)\s+(\w{3}\s+\w{3}\s+\d+\s+[\d:]+)`)
+	authAcceptedRE      = regexp.MustCompile(`Accepted (\w+) for (\S+) from ([0-9a-fA-F:.]+)`)
+	authFailedInvalidRE = regexp.MustCompile(`Failed password for invalid user (\S+) from ([0-9a-fA-F:.]+)`)
+	authInvalidRE       = regexp.MustCompile(`Invalid user (\S+) from ([0-9a-fA-F:.]+)`)
+	authFailedRE        = regexp.MustCompile(`Failed password for (\S+) from ([0-9a-fA-F:.]+)`)
+	lastLoginRE         = regexp.MustCompile(`^(\S+)\s+(\S+)\s+(\S+)\s+(\w{3}\s+\w{3}\s+\d+\s+[\d:]+)`)
 )
 
 const (
@@ -136,6 +137,7 @@ func collectSSHFailures(limit int) []models.SSHAuthEvent {
 	sort.Slice(events, func(i, j int) bool {
 		return events[i].Timestamp.After(events[j].Timestamp)
 	})
+	events = dedupeSSHFailures(events)
 	if len(events) > limit {
 		events = events[:limit]
 	}
@@ -182,12 +184,12 @@ func parseAuthLogSSHFailure(line string, now time.Time) (models.SSHAuthEvent, bo
 		return models.SSHAuthEvent{}, false
 	}
 
-	if matches := authFailedRE.FindStringSubmatch(message); len(matches) == 3 {
+	if matches := authFailedInvalidRE.FindStringSubmatch(message); len(matches) == 3 {
 		return models.SSHAuthEvent{
 			Timestamp: withCurrentYear(when),
 			User:      matches[1],
 			IP:        matches[2],
-			Kind:      "failed_password",
+			Kind:      "invalid_user",
 		}, true
 	}
 
@@ -200,7 +202,63 @@ func parseAuthLogSSHFailure(line string, now time.Time) (models.SSHAuthEvent, bo
 		}, true
 	}
 
+	if matches := authFailedRE.FindStringSubmatch(message); len(matches) == 3 {
+		return models.SSHAuthEvent{
+			Timestamp: withCurrentYear(when),
+			User:      matches[1],
+			IP:        matches[2],
+			Kind:      "failed_password",
+		}, true
+	}
+
 	return models.SSHAuthEvent{}, false
+}
+
+func dedupeSSHFailures(events []models.SSHAuthEvent) []models.SSHAuthEvent {
+	if len(events) == 0 {
+		return events
+	}
+
+	out := make([]models.SSHAuthEvent, 0, len(events))
+	for _, event := range events {
+		merged := false
+		for i, existing := range out {
+			if existing.User != event.User || existing.IP != event.IP {
+				continue
+			}
+			diff := existing.Timestamp.Sub(event.Timestamp)
+			if diff < 0 {
+				diff = -diff
+			}
+			if diff > 10*time.Second {
+				continue
+			}
+			if sshFailureKindRank(event.Kind) >= sshFailureKindRank(existing.Kind) {
+				out[i] = event
+			}
+			merged = true
+			break
+		}
+		if !merged {
+			out = append(out, event)
+		}
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Timestamp.After(out[j].Timestamp)
+	})
+	return out
+}
+
+func sshFailureKindRank(kind string) int {
+	switch kind {
+	case "invalid_user":
+		return 2
+	case "failed_password":
+		return 1
+	default:
+		return 0
+	}
 }
 
 func parseAuthLogSSHAccepted(line string, now time.Time) (models.SSHAuthEvent, bool) {
