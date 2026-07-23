@@ -53,6 +53,7 @@ func (c *Collector) collect() {
 	services := CollectServices(c.cfg.Services)
 	mongo := CollectMongo(c.cfg.MongoURI)
 	dplo := CollectDplo(c.cfg.DploDataDir, c.cfg.DploHealthURL)
+	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNServiceName)
 	ssh := CollectSSH()
 
 	snapshot := models.Snapshot{
@@ -64,6 +65,7 @@ func (c *Collector) collect() {
 		Services:  services,
 		Dplo:      dplo,
 		Mongo:     mongo,
+		OpenVPN:   openvpn,
 		SSH:       ssh,
 	}
 

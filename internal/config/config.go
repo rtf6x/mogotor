@@ -14,8 +14,10 @@ const (
 	DefaultRetention       = 24 * time.Hour
 	DefaultRedisAddr       = "127.0.0.1:63719"
 	DefaultRedisDB         = 4
-	DefaultDploDataDir     = "/var/lib/dplo"
-	DefaultDploHealthURL   = "http://127.0.0.1:8090/health"
+	DefaultDploDataDir        = "/var/lib/dplo"
+	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
+	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"
+	DefaultOpenVPNServiceName = "openvpn@server"
 )
 
 type Config struct {
@@ -25,9 +27,11 @@ type Config struct {
 	RedisAddr       string
 	RedisPassword   string
 	RedisDB         int
-	DploDataDir     string
-	DploHealthURL   string
-	CollectInterval time.Duration
+	DploDataDir        string
+	DploHealthURL      string
+	OpenVPNStatusPath  string
+	OpenVPNServiceName string
+	CollectInterval    time.Duration
 	Retention       time.Duration
 	Services        []string
 }
@@ -41,15 +45,18 @@ func Load() Config {
 		RedisAddr:       resolveRedisAddr(),
 		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
 		RedisDB:         envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
-		DploDataDir:     envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
-		DploHealthURL:   envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
-		CollectInterval: DefaultCollectInterval,
+		DploDataDir:        envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
+		DploHealthURL:      envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
+		OpenVPNStatusPath:  envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
+		OpenVPNServiceName: envOr("MOGOTOR_OPENVPN_SERVICE", DefaultOpenVPNServiceName),
+		CollectInterval:    DefaultCollectInterval,
 		Retention:       DefaultRetention,
 		Services: []string{
 			"mongod",
 			"nginx",
 			"docker",
 			"dplo",
+			"openvpn@server",
 			"redis-server",
 			"fail2ban",
 		},

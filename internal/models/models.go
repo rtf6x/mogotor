@@ -130,6 +130,16 @@ type SSHSnapshot struct {
 	Failures  []SSHAuthEvent `json:"failures"`
 }
 
+type OpenVPNSnapshot struct {
+	Available   bool     `json:"available"`
+	Error       string   `json:"error,omitempty"`
+	ServiceName string   `json:"serviceName,omitempty"`
+	Active      string   `json:"active,omitempty"`
+	SubState    string   `json:"subState,omitempty"`
+	UpdatedAt   string   `json:"updatedAt,omitempty"`
+	Clients     []string `json:"clients"`
+}
+
 type Snapshot struct {
 	Timestamp time.Time       `json:"timestamp"`
 	System    SystemSnapshot  `json:"system"`
@@ -139,6 +149,7 @@ type Snapshot struct {
 	Services  []ServiceStatus `json:"services"`
 	Dplo      DploSnapshot    `json:"dplo"`
 	Mongo     MongoSnapshot   `json:"mongo"`
+	OpenVPN   OpenVPNSnapshot `json:"openvpn"`
 	SSH       SSHSnapshot     `json:"ssh"`
 }
 

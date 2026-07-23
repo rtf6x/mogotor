@@ -1,0 +1,2 @@
+# Allow mogotor (jenkins user) to read OpenVPN status for connected client names.
+jenkins ALL=(root) NOPASSWD: /bin/cat /etc/openvpn/openvpn-status.log

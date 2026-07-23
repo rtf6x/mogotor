@@ -422,6 +422,30 @@ function renderDplo(dplo) {
   `).join("") + (dplo.dataDir ? `<div class="service-desc">data: ${dplo.dataDir}</div>` : "");
 }
 
+function renderOpenVPN(openvpn) {
+  const status = document.getElementById("openvpn-status");
+  const clientsRoot = document.getElementById("openvpn-clients");
+
+  if (!openvpn || (!openvpn.available && openvpn.active !== "active")) {
+    const message = openvpn?.error || "OpenVPN status unavailable";
+    status.textContent = message;
+    status.className = "status-line error";
+    clientsRoot.innerHTML = "";
+    return;
+  }
+
+  const serviceState = openvpn.active === "active"
+    ? `${openvpn.active}${openvpn.subState ? ` / ${openvpn.subState}` : ""}`
+    : (openvpn.active || "unknown");
+  const clientCount = (openvpn.clients || []).length;
+  status.textContent = `${serviceState} · ${clientCount} connected`;
+  status.className = "status-line";
+
+  clientsRoot.innerHTML = (openvpn.clients || []).map((name) => `
+    <span class="pill ok">${name}</span>
+  `).join("") || `<div class="service-desc">No clients connected</div>`;
+}
+
 function renderMongo(mongo) {
   const root = document.getElementById("mongo-panel");
   if (!mongo.available) {
@@ -517,6 +541,7 @@ async function refresh() {
   renderServices(snapshot.services || []);
   renderDplo(snapshot.dplo);
   renderMongo(snapshot.mongo);
+  renderOpenVPN(snapshot.openvpn);
   renderSSH(snapshot.ssh);
 }
 

@@ -288,6 +288,12 @@ th {
   gap: 0.75rem;
 }
 
+.openvpn-clients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .service-item, .mongo-item {
   display: flex;
   justify-content: space-between;
