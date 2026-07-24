@@ -521,6 +521,46 @@ function renderSSH(ssh) {
   `).join("") || `<tr><td colspan="4">No recent failures</td></tr>`;
 }
 
+function renderFail2ban(fail2ban) {
+  const status = document.getElementById("fail2ban-status");
+  const body = document.querySelector("#fail2ban-table tbody");
+
+  if (!fail2ban || !fail2ban.available) {
+    status.textContent = fail2ban?.error || "Fail2ban unavailable";
+    status.className = "status-line error";
+    body.innerHTML = "";
+    return;
+  }
+
+  const serviceState = fail2ban.active
+    ? `${fail2ban.active}${fail2ban.subState ? ` / ${fail2ban.subState}` : ""}`
+    : "unknown";
+  const jails = fail2ban.jails || [];
+  const bannedTotal = jails.reduce((sum, jail) => sum + (jail.currentlyBanned || 0), 0);
+  const source = fail2ban.source ? ` · via ${fail2ban.source}` : "";
+  status.textContent = `${serviceState} · ${jails.length} jail(s) · ${bannedTotal} banned${source}`;
+  status.className = "status-line";
+
+  body.innerHTML = jails.map((jail) => {
+    const failed = fail2ban.source === "log"
+      ? "—"
+      : `${jail.currentlyFailed || 0}${jail.totalFailed ? ` / ${jail.totalFailed}` : ""}`;
+    const banned = fail2ban.source === "log"
+      ? `${jail.currentlyBanned || 0}`
+      : `${jail.currentlyBanned || 0}${jail.totalBanned ? ` / ${jail.totalBanned}` : ""}`;
+    const ips = (jail.bannedIps || []).map((ip) => `<span class="pill bad mono">${ip}</span>`).join(" ")
+      || `<span class="service-desc">none</span>`;
+    return `
+      <tr>
+        <td>${jail.name || "—"}</td>
+        <td>${failed}</td>
+        <td>${banned}</td>
+        <td class="fail2ban-ips">${ips}</td>
+      </tr>
+    `;
+  }).join("") || `<tr><td colspan="4">No jails</td></tr>`;
+}
+
 async function refresh() {
   const [snapshotRes, historyRes] = await Promise.all([
     fetch("/api/snapshot"),
@@ -543,6 +583,7 @@ async function refresh() {
   renderMongo(snapshot.mongo);
   renderOpenVPN(snapshot.openvpn);
   renderSSH(snapshot.ssh);
+  renderFail2ban(snapshot.fail2ban);
 }
 
 refresh();

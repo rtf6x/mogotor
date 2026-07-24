@@ -294,6 +294,13 @@ th {
   gap: 0.5rem;
 }
 
+.fail2ban-ips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .service-item, .mongo-item {
   display: flex;
   justify-content: space-between;

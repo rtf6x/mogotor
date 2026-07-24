@@ -55,6 +55,7 @@ func (c *Collector) collect() {
 	dplo := CollectDplo(c.cfg.DploDataDir, c.cfg.DploHealthURL)
 	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNServiceName)
 	ssh := CollectSSH()
+	fail2ban := CollectFail2ban()
 
 	snapshot := models.Snapshot{
 		Timestamp: now,
@@ -67,6 +68,7 @@ func (c *Collector) collect() {
 		Mongo:     mongo,
 		OpenVPN:   openvpn,
 		SSH:       ssh,
+		Fail2ban:  fail2ban,
 	}
 
 	c.history.Add(system)

@@ -1,0 +1,4 @@
+# Allow mogotor service user to query fail2ban jail status (read-only).
+# Replace jenkins with the User= from mogotor.service if different.
+jenkins ALL=(root) NOPASSWD: /usr/bin/fail2ban-client status, /usr/bin/fail2ban-client status *
+jenkins ALL=(root) NOPASSWD: /usr/bin/tail -n * /var/log/fail2ban.log

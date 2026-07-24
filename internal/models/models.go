@@ -3,23 +3,23 @@ package models
 import "time"
 
 type SystemSnapshot struct {
-	Timestamp       time.Time `json:"timestamp"`
-	CPUPercent      float64   `json:"cpuPercent"`
-	MemoryUsedBytes uint64    `json:"memoryUsedBytes"`
-	MemoryTotalBytes uint64   `json:"memoryTotalBytes"`
-	SwapUsedBytes   uint64    `json:"swapUsedBytes"`
-	SwapTotalBytes  uint64    `json:"swapTotalBytes"`
-	DiskUsedBytes   uint64    `json:"diskUsedBytes"`
-	DiskTotalBytes  uint64    `json:"diskTotalBytes"`
-	DiskUsedPercent float64   `json:"diskUsedPercent"`
-	NetBytesSent    uint64    `json:"netBytesSent"`
-	NetBytesRecv    uint64    `json:"netBytesRecv"`
-	NetSendBps      float64   `json:"netSendBps"`
-	NetRecvBps      float64   `json:"netRecvBps"`
-	Load1           float64   `json:"load1"`
-	Load5           float64   `json:"load5"`
-	Load15          float64   `json:"load15"`
-	UptimeSeconds   uint64    `json:"uptimeSeconds"`
+	Timestamp        time.Time `json:"timestamp"`
+	CPUPercent       float64   `json:"cpuPercent"`
+	MemoryUsedBytes  uint64    `json:"memoryUsedBytes"`
+	MemoryTotalBytes uint64    `json:"memoryTotalBytes"`
+	SwapUsedBytes    uint64    `json:"swapUsedBytes"`
+	SwapTotalBytes   uint64    `json:"swapTotalBytes"`
+	DiskUsedBytes    uint64    `json:"diskUsedBytes"`
+	DiskTotalBytes   uint64    `json:"diskTotalBytes"`
+	DiskUsedPercent  float64   `json:"diskUsedPercent"`
+	NetBytesSent     uint64    `json:"netBytesSent"`
+	NetBytesRecv     uint64    `json:"netBytesRecv"`
+	NetSendBps       float64   `json:"netSendBps"`
+	NetRecvBps       float64   `json:"netRecvBps"`
+	Load1            float64   `json:"load1"`
+	Load5            float64   `json:"load5"`
+	Load15           float64   `json:"load15"`
+	UptimeSeconds    uint64    `json:"uptimeSeconds"`
 }
 
 type DiskUsage struct {
@@ -45,8 +45,8 @@ type PM2Process struct {
 
 type PM2Snapshot struct {
 	Available bool         `json:"available"`
-	Error     string         `json:"error,omitempty"`
-	Processes []PM2Process   `json:"processes"`
+	Error     string       `json:"error,omitempty"`
+	Processes []PM2Process `json:"processes"`
 }
 
 type DockerContainer struct {
@@ -130,6 +130,24 @@ type SSHSnapshot struct {
 	Failures  []SSHAuthEvent `json:"failures"`
 }
 
+type Fail2banJail struct {
+	Name            string   `json:"name"`
+	CurrentlyFailed int      `json:"currentlyFailed"`
+	TotalFailed     int      `json:"totalFailed"`
+	CurrentlyBanned int      `json:"currentlyBanned"`
+	TotalBanned     int      `json:"totalBanned"`
+	BannedIPs       []string `json:"bannedIps"`
+}
+
+type Fail2banSnapshot struct {
+	Available bool           `json:"available"`
+	Error     string         `json:"error,omitempty"`
+	Source    string         `json:"source,omitempty"`
+	Active    string         `json:"active,omitempty"`
+	SubState  string         `json:"subState,omitempty"`
+	Jails     []Fail2banJail `json:"jails"`
+}
+
 type OpenVPNSnapshot struct {
 	Available   bool     `json:"available"`
 	Error       string   `json:"error,omitempty"`
@@ -141,16 +159,17 @@ type OpenVPNSnapshot struct {
 }
 
 type Snapshot struct {
-	Timestamp time.Time       `json:"timestamp"`
-	System    SystemSnapshot  `json:"system"`
-	Disks     []DiskUsage     `json:"disks"`
-	PM2       PM2Snapshot     `json:"pm2"`
-	Docker    DockerSnapshot  `json:"docker"`
-	Services  []ServiceStatus `json:"services"`
-	Dplo      DploSnapshot    `json:"dplo"`
-	Mongo     MongoSnapshot   `json:"mongo"`
-	OpenVPN   OpenVPNSnapshot `json:"openvpn"`
-	SSH       SSHSnapshot     `json:"ssh"`
+	Timestamp time.Time        `json:"timestamp"`
+	System    SystemSnapshot   `json:"system"`
+	Disks     []DiskUsage      `json:"disks"`
+	PM2       PM2Snapshot      `json:"pm2"`
+	Docker    DockerSnapshot   `json:"docker"`
+	Services  []ServiceStatus  `json:"services"`
+	Dplo      DploSnapshot     `json:"dplo"`
+	Mongo     MongoSnapshot    `json:"mongo"`
+	OpenVPN   OpenVPNSnapshot  `json:"openvpn"`
+	SSH       SSHSnapshot      `json:"ssh"`
+	Fail2ban  Fail2banSnapshot `json:"fail2ban"`
 }
 
 type HistoryResponse struct {
