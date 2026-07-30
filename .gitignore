@@ -17,3 +17,5 @@
 bin/
 /mogotor
 data/
+
+.DS_Store
