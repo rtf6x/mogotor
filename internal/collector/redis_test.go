@@ -220,11 +220,71 @@ func TestCollectMadNewsAPOD(t *testing.T) {
 	if apod == nil || !apod.Cached {
 		t.Fatalf("expected cached apod, got %+v", apod)
 	}
-	if apod.Title != "Red Sun" || apod.Date != "2026-07-30" {
-		t.Fatalf("unexpected apod fields: %+v", apod)
+	if apod.CacheKey != madNewsAPODKey {
+		t.Fatalf("unexpected cache key: %q", apod.CacheKey)
 	}
 	if apod.TTLSeconds <= 0 {
 		t.Fatalf("expected positive ttl, got %d", apod.TTLSeconds)
+	}
+}
+
+func TestCollectCritiqueQueueDB(t *testing.T) {
+	srv := startMiniRedis(t)
+	ctx := context.Background()
+
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 2})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	jobQueued := map[string]any{
+		"id":     "critique-queued",
+		"status": "queued",
+	}
+	jobProcessing := map[string]any{
+		"id":     "critique-processing",
+		"status": "processing",
+	}
+	queuedRaw, _ := json.Marshal(jobQueued)
+	processingRaw, _ := json.Marshal(jobProcessing)
+
+	if err := rdb.Set(ctx, "critique:job:critique-queued", queuedRaw, time.Hour).Err(); err != nil {
+		t.Fatalf("set queued job: %v", err)
+	}
+	if err := rdb.Set(ctx, "critique:job:critique-processing", processingRaw, time.Hour).Err(); err != nil {
+		t.Fatalf("set processing job: %v", err)
+	}
+	if err := rdb.RPush(ctx, critiqueQueueKey, "critique-queued").Err(); err != nil {
+		t.Fatalf("queue push: %v", err)
+	}
+
+	snapshot := CollectRedis(srv.Addr(), "", 4, []int{0, 1, 2, 3, 4})
+	if !snapshot.Available {
+		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
+	}
+
+	var critiqueDB *models.RedisDBSnapshot
+	for i := range snapshot.Databases {
+		if snapshot.Databases[i].DB == 2 {
+			critiqueDB = &snapshot.Databases[i]
+			break
+		}
+	}
+	if critiqueDB == nil {
+		t.Fatalf("expected db 2 in snapshot: %+v", snapshot.Databases)
+	}
+	if critiqueDB.Mode != "queue" {
+		t.Fatalf("expected queue mode, got %q", critiqueDB.Mode)
+	}
+	if critiqueDB.Label != "art-direction-agent" {
+		t.Fatalf("expected art-direction-agent label, got %q", critiqueDB.Label)
+	}
+	if critiqueDB.Queue == nil {
+		t.Fatal("expected queue details")
+	}
+	if critiqueDB.Queue.Pending != 1 || critiqueDB.Queue.Processing != 1 {
+		t.Fatalf("queue counts: pending=%d processing=%d", critiqueDB.Queue.Pending, critiqueDB.Queue.Processing)
+	}
+	if critiqueDB.Queue.JobCount != 2 {
+		t.Fatalf("expected 2 job keys, got %d", critiqueDB.Queue.JobCount)
 	}
 }
 

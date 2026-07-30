@@ -343,6 +343,145 @@ th {
   gap: 0.35rem;
 }
 
+.redis-section {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-faint);
+}
+
+.redis-section-title {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.redis-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.redis-stat-card {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-faint);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.redis-stat-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.redis-stat-card strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.15rem;
+}
+
+.redis-stat-card.ok strong {
+  color: var(--ok);
+}
+
+.redis-stat-card.bad strong {
+  color: var(--bad);
+}
+
+.redis-activity {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.redis-activity-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.redis-activity-label {
+  color: var(--muted);
+}
+
+.redis-activity-job {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.redis-jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.redis-jobs-table th,
+.redis-jobs-table td {
+  padding: 0.35rem 0.45rem;
+  border-bottom: 1px solid var(--border-faint);
+  text-align: left;
+}
+
+.redis-jobs-table th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.redis-jobs-table td:last-child,
+.redis-jobs-table th:last-child {
+  width: 4.5rem;
+}
+
+.redis-apod-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-faint);
+}
+
+.redis-apod-banner.alive {
+  background: rgba(46, 204, 113, 0.08);
+  border-color: rgba(46, 204, 113, 0.25);
+}
+
+.redis-apod-banner.miss {
+  background: rgba(231, 76, 60, 0.08);
+  border-color: rgba(231, 76, 60, 0.25);
+}
+
+.redis-apod-state {
+  font-weight: 600;
+}
+
+.redis-apod-banner.alive .redis-apod-state {
+  color: var(--ok);
+}
+
+.redis-apod-banner.miss .redis-apod-state {
+  color: var(--bad);
+}
+
+.redis-apod-ttl {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.redis-apod-hint {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .redis-oracle-stats {
   display: grid;
   gap: 0.35rem;

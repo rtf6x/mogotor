@@ -22,6 +22,9 @@ const (
 	oracleJobPrefix     = "advice:job:"
 	oracleEventsChannel = "advice:events"
 	oracleStatsKey      = "advice:stats"
+	critiqueQueueKey    = "critique:queue"
+	critiqueJobPrefix   = "critique:job:"
+	critiqueEventsChannel = "critique:events"
 	madNewsAPODKey      = "nasa-apod"
 	mogotorHistoryKey   = "mogotor:history"
 	redisMemoryKeyLimit = 500
@@ -29,11 +32,13 @@ const (
 
 var knownRedisDBLabels = map[int]string{
 	0: "mad-news-bot",
+	2: "art-direction-agent",
 	3: "bad-advice-oracle",
 	4: "mogotor",
 }
 
 const oracleDB = 3
+const critiqueDB = 2
 const madNewsDB = 0
 
 type redisKeyspaceDB struct {
@@ -49,12 +54,9 @@ type redisJobRaw struct {
 	Attempt int    `json:"attempt"`
 }
 
-type redisAPODRaw struct {
-	Date      string `json:"date"`
-	Title     string `json:"title"`
-	MediaType string `json:"media_type"`
-	Copyright string `json:"copyright"`
-	URL       string `json:"url"`
+type redisCritiqueJobRaw struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
 }
 
 func CollectRedis(addr, password string, selfDB int, watchDBs []int) models.RedisSnapshot {
@@ -140,6 +142,13 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		return snapshot
 	}
 
+	if isCritiqueDB(meta.DB) || isCritiqueQueueDB(ctx, client) {
+		snapshot.Mode = "queue"
+		snapshot.Label = "art-direction-agent"
+		snapshot.Queue = collectCritiqueQueue(ctx, client)
+		return snapshot
+	}
+
 	if isMadNewsDB(meta.DB) || hasMadNewsAPOD(ctx, client) {
 		snapshot.Mode = "apod"
 		snapshot.Label = "mad-news-bot"
@@ -163,6 +172,27 @@ func isOracleDB(db int) bool {
 
 func isMadNewsDB(db int) bool {
 	return db == madNewsDB
+}
+
+func isCritiqueDB(db int) bool {
+	return db == critiqueDB
+}
+
+func isCritiqueQueueDB(ctx context.Context, client *redis.Client) bool {
+	exists, err := client.Exists(ctx, critiqueQueueKey).Result()
+	if err == nil && exists > 0 {
+		return true
+	}
+	n, err := client.Eval(ctx, `
+local cursor = "0"
+repeat
+  local res = redis.call("SCAN", cursor, "MATCH", "critique:job:*", "COUNT", 1)
+  cursor = res[1]
+  if #res[2] > 0 then return 1 end
+until cursor == "0"
+return 0
+`, []string{}).Int()
+	return err == nil && n > 0
 }
 
 func hasMadNewsAPOD(ctx context.Context, client *redis.Client) bool {
@@ -228,6 +258,96 @@ return n
 	return queue
 }
 
+func collectCritiqueQueue(ctx context.Context, client *redis.Client) *models.RedisQueueSnapshot {
+	pending, _ := client.LLen(ctx, critiqueQueueKey).Result()
+	pendingIDs, _ := client.LRange(ctx, critiqueQueueKey, 0, -1).Result()
+
+	processing, jobCount, extraJobs := scanCritiqueJobs(ctx, client, pendingIDs)
+	jobs := make([]models.RedisJobSummary, 0, redisMaxJobSummaries)
+	for _, id := range pendingIDs {
+		if len(jobs) >= redisMaxJobSummaries {
+			break
+		}
+		if summary, ok := loadCritiqueJobSummary(ctx, client, id); ok {
+			jobs = append(jobs, summary)
+		} else {
+			jobs = append(jobs, models.RedisJobSummary{ID: id, Status: "queued"})
+		}
+	}
+	for _, summary := range extraJobs {
+		if len(jobs) >= redisMaxJobSummaries {
+			break
+		}
+		jobs = append(jobs, summary)
+	}
+
+	queue := &models.RedisQueueSnapshot{
+		Name:       "critique",
+		Pending:    int(pending),
+		Processing: processing,
+		JobCount:   jobCount,
+		Jobs:       jobs,
+		PubSubChan: critiqueEventsChannel,
+	}
+
+	if subs, err := client.PubSubNumSub(ctx, critiqueEventsChannel).Result(); err == nil {
+		if count, ok := subs[critiqueEventsChannel]; ok {
+			queue.Subscribers = int(count)
+		}
+	}
+
+	return queue
+}
+
+func scanCritiqueJobs(ctx context.Context, client *redis.Client, pendingIDs []string) (processing, total int, extras []models.RedisJobSummary) {
+	pendingSet := make(map[string]struct{}, len(pendingIDs))
+	for _, id := range pendingIDs {
+		pendingSet[id] = struct{}{}
+	}
+
+	cursor := uint64(0)
+	for {
+		keys, next, err := client.Scan(ctx, cursor, critiqueJobPrefix+"*", 100).Result()
+		if err != nil {
+			return processing, total, extras
+		}
+		for _, key := range keys {
+			total++
+			id := strings.TrimPrefix(key, critiqueJobPrefix)
+			summary, ok := loadCritiqueJobSummary(ctx, client, id)
+			if !ok {
+				continue
+			}
+			if summary.Status == "processing" {
+				processing++
+			}
+			if _, queued := pendingSet[id]; !queued && len(extras) < redisMaxJobSummaries {
+				extras = append(extras, summary)
+			}
+		}
+		cursor = next
+		if cursor == 0 {
+			break
+		}
+	}
+	return processing, total, extras
+}
+
+func loadCritiqueJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
+	raw, err := client.Get(ctx, critiqueJobPrefix+id).Bytes()
+	if err != nil {
+		return models.RedisJobSummary{}, false
+	}
+	var job redisCritiqueJobRaw
+	if err := json.Unmarshal(raw, &job); err != nil {
+		return models.RedisJobSummary{ID: id, Status: "unknown"}, true
+	}
+	if job.ID == "" {
+		job.ID = id
+	}
+	return models.RedisJobSummary{ID: job.ID, Status: job.Status}, true
+}
+
 func collectOracleStats(ctx context.Context, client *redis.Client) *models.RedisOracleStats {
 	values, err := client.HGetAll(ctx, oracleStatsKey).Result()
 	if err != nil || len(values) == 0 {
@@ -251,27 +371,14 @@ func collectMadNewsAPOD(ctx context.Context, client *redis.Client) *models.Redis
 		CacheKey: madNewsAPODKey,
 		Cached:   false,
 	}
-	ttl, err := client.TTL(ctx, madNewsAPODKey).Result()
-	if err != nil {
-		return snapshot
-	}
-	if ttl > 0 {
-		snapshot.TTLSeconds = int64(ttl.Seconds())
-	}
-	raw, err := client.Get(ctx, madNewsAPODKey).Bytes()
-	if err != nil {
-		return snapshot
-	}
-	var item redisAPODRaw
-	if err := json.Unmarshal(raw, &item); err != nil {
+	exists, err := client.Exists(ctx, madNewsAPODKey).Result()
+	if err != nil || exists == 0 {
 		return snapshot
 	}
 	snapshot.Cached = true
-	snapshot.Date = item.Date
-	snapshot.Title = item.Title
-	snapshot.MediaType = item.MediaType
-	snapshot.Copyright = item.Copyright
-	snapshot.PhotoURL = item.URL
+	if ttl, err := client.TTL(ctx, madNewsAPODKey).Result(); err == nil && ttl > 0 {
+		snapshot.TTLSeconds = int64(ttl.Seconds())
+	}
 	return snapshot
 }
 
