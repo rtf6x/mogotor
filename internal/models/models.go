@@ -148,6 +148,43 @@ type Fail2banSnapshot struct {
 	Jails     []Fail2banJail `json:"jails"`
 }
 
+type RedisJobSummary struct {
+	ID      string `json:"id"`
+	Status  string `json:"status"`
+	Attempt int    `json:"attempt,omitempty"`
+}
+
+type RedisQueueSnapshot struct {
+	Name        string            `json:"name"`
+	Pending     int               `json:"pending"`
+	Processing  int               `json:"processing"`
+	JobCount    int               `json:"jobCount"`
+	Jobs        []RedisJobSummary `json:"jobs,omitempty"`
+	PubSubChan  string            `json:"pubSubChannel,omitempty"`
+	Subscribers int               `json:"subscribers,omitempty"`
+}
+
+type RedisDBSnapshot struct {
+	DB         int                 `json:"db"`
+	Keys       int                 `json:"keys"`
+	Expires    int                 `json:"expires,omitempty"`
+	AvgTTLMs   int64               `json:"avgTtlMs,omitempty"`
+	Mode       string              `json:"mode"`
+	Label      string              `json:"label,omitempty"`
+	Queue      *RedisQueueSnapshot `json:"queue,omitempty"`
+	Highlights []string            `json:"highlights,omitempty"`
+}
+
+type RedisSnapshot struct {
+	Available        bool              `json:"available"`
+	Error            string            `json:"error,omitempty"`
+	Version          string            `json:"version,omitempty"`
+	UsedMemoryBytes  uint64            `json:"usedMemoryBytes,omitempty"`
+	ConnectedClients int               `json:"connectedClients,omitempty"`
+	UptimeSeconds    int64             `json:"uptimeSeconds,omitempty"`
+	Databases        []RedisDBSnapshot `json:"databases"`
+}
+
 type OpenVPNSnapshot struct {
 	Available   bool     `json:"available"`
 	Error       string   `json:"error,omitempty"`
@@ -170,6 +207,7 @@ type Snapshot struct {
 	OpenVPN   OpenVPNSnapshot  `json:"openvpn"`
 	SSH       SSHSnapshot      `json:"ssh"`
 	Fail2ban  Fail2banSnapshot `json:"fail2ban"`
+	Redis     RedisSnapshot    `json:"redis"`
 }
 
 type HistoryResponse struct {

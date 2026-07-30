@@ -521,6 +521,88 @@ function renderSSH(ssh) {
   `).join("") || `<tr><td colspan="4">No recent failures</td></tr>`;
 }
 
+function redisJobStatusClass(status) {
+  const value = String(status || "").toLowerCase();
+  if (["done", "completed"].includes(value)) return "ok";
+  if (["failed", "error"].includes(value)) return "bad";
+  if (["processing", "queued", "retrying"].includes(value)) return "warn";
+  return "";
+}
+
+function renderRedis(redis) {
+  const status = document.getElementById("redis-status");
+  const panel = document.getElementById("redis-panel");
+
+  if (!redis || !redis.available) {
+    status.textContent = redis?.error || "Redis unavailable";
+    status.className = "status-line error";
+    panel.innerHTML = "";
+    return;
+  }
+
+  const mem = redis.usedMemoryBytes ? formatBytes(redis.usedMemoryBytes) : "—";
+  const uptime = redis.uptimeSeconds ? formatUptime(redis.uptimeSeconds) : "—";
+  status.textContent = `${redis.version || "redis"} · ${mem} · ${redis.connectedClients || 0} clients · uptime ${uptime}`;
+  status.className = "status-line";
+
+  const databases = redis.databases || [];
+  if (!databases.length) {
+    panel.innerHTML = `<div class="service-desc">No keys in any database</div>`;
+    return;
+  }
+
+  panel.innerHTML = databases.map((db) => {
+    const title = db.label ? `db ${db.db} · ${db.label}` : `db ${db.db}`;
+    const meta = `${db.keys} keys${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
+
+    if (db.mode === "queue" && db.queue) {
+      const queue = db.queue;
+      const jobs = (queue.jobs || []).map((job) => `
+        <div class="redis-job-row">
+          <span class="mono">${job.id}</span>
+          <span class="pill ${redisJobStatusClass(job.status)}">${job.status || "unknown"}${job.attempt ? ` · #${job.attempt}` : ""}</span>
+        </div>
+      `).join("") || `<div class="service-desc">No active jobs</div>`;
+
+      return `
+        <div class="redis-db-card">
+          <div class="redis-db-header">
+            <div>
+              <div class="redis-db-title">${title}</div>
+              <div class="redis-db-meta">${meta} · queue</div>
+            </div>
+            <span class="pill warn">queue</span>
+          </div>
+          <div class="redis-queue-grid">
+            <div class="redis-queue-stat"><span>Pending</span><strong>${queue.pending || 0}</strong></div>
+            <div class="redis-queue-stat"><span>Processing</span><strong>${queue.processing || 0}</strong></div>
+            <div class="redis-queue-stat"><span>Job keys</span><strong>${queue.jobCount || 0}</strong></div>
+            <div class="redis-queue-stat"><span>Subscribers</span><strong>${queue.subscribers || 0}</strong></div>
+          </div>
+          <div class="redis-jobs">${jobs}</div>
+          ${queue.pubSubChannel ? `<div class="service-desc">channel: <span class="mono">${queue.pubSubChannel}</span></div>` : ""}
+        </div>
+      `;
+    }
+
+    const highlights = (db.highlights || []).map((line) => `<div>${line}</div>`).join("")
+      || `<div class="service-desc">No known keys</div>`;
+
+    return `
+      <div class="redis-db-card">
+        <div class="redis-db-header">
+          <div>
+            <div class="redis-db-title">${title}</div>
+            <div class="redis-db-meta">${meta}</div>
+          </div>
+          <span class="pill ok">summary</span>
+        </div>
+        <div class="redis-highlights">${highlights}</div>
+      </div>
+    `;
+  }).join("");
+}
+
 function renderFail2ban(fail2ban) {
   const status = document.getElementById("fail2ban-status");
   const body = document.querySelector("#fail2ban-table tbody");
@@ -583,6 +665,7 @@ async function refresh() {
   renderMongo(snapshot.mongo);
   renderOpenVPN(snapshot.openvpn);
   renderSSH(snapshot.ssh);
+  renderRedis(snapshot.redis);
   renderFail2ban(snapshot.fail2ban);
 }
 

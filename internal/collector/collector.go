@@ -56,6 +56,7 @@ func (c *Collector) collect() {
 	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNServiceName)
 	ssh := CollectSSH()
 	fail2ban := CollectFail2ban()
+	redisSnap := CollectRedis(c.cfg.RedisAddr, c.cfg.RedisPassword, c.cfg.RedisDB)
 
 	snapshot := models.Snapshot{
 		Timestamp: now,
@@ -69,6 +70,7 @@ func (c *Collector) collect() {
 		OpenVPN:   openvpn,
 		SSH:       ssh,
 		Fail2ban:  fail2ban,
+		Redis:     redisSnap,
 	}
 
 	c.history.Add(system)
