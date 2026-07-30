@@ -553,7 +553,8 @@ function renderRedis(redis) {
 
   panel.innerHTML = databases.map((db) => {
     const title = db.label ? `db ${db.db} · ${db.label}` : `db ${db.db}`;
-    const meta = `${db.keys} keys${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
+    const memory = db.memoryBytes ? `${formatBytes(db.memoryBytes)}${db.memoryApprox ? "+" : ""}` : "0 B";
+    const meta = `${db.keys} keys · ${memory}${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
 
     if (db.mode === "queue" && db.queue) {
       const queue = db.queue;

@@ -71,7 +71,7 @@ func TestCollectRedisQueueDB(t *testing.T) {
 		t.Fatalf("processing push: %v", err)
 	}
 
-	snapshot := CollectRedis(srv.Addr(), "", 3)
+	snapshot := CollectRedis(srv.Addr(), "", 3, []int{0, 1, 2, 3, 4})
 	if !snapshot.Available {
 		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
 	}
@@ -119,7 +119,7 @@ func TestCollectRedisSummaryDB(t *testing.T) {
 		t.Fatalf("zadd: %v", err)
 	}
 
-	snapshot := CollectRedis(srv.Addr(), "", 4)
+	snapshot := CollectRedis(srv.Addr(), "", 4, []int{0, 1, 2, 3, 4})
 	if !snapshot.Available {
 		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
 	}
@@ -139,7 +139,7 @@ func TestCollectRedisSummaryDB(t *testing.T) {
 	}
 	foundHistory := false
 	for _, highlight := range summaryDB.Highlights {
-		if highlight == "mogotor:history (zset, 2 members)" {
+		if highlight == "mogotor:history (zset, 2 points, 24h metrics)" {
 			foundHistory = true
 		}
 	}
@@ -148,8 +148,47 @@ func TestCollectRedisSummaryDB(t *testing.T) {
 	}
 }
 
+func TestMergeRedisDBsIncludesWatchedEmptyDB(t *testing.T) {
+	merged := mergeRedisDBs(
+		[]redisKeyspaceDB{{DB: 4, Keys: 1}},
+		[]redisKeyspaceDB{{DB: 4, Keys: 1}},
+		[]int{1, 3, 4},
+	)
+	byDB := map[int]redisKeyspaceDB{}
+	for _, db := range merged {
+		byDB[db.DB] = db
+	}
+	if _, ok := byDB[1]; !ok || byDB[1].Keys != 0 {
+		t.Fatalf("expected watched empty db1, got %+v", byDB[1])
+	}
+	if _, ok := byDB[3]; !ok || byDB[3].Keys != 0 {
+		t.Fatalf("expected watched empty db3, got %+v", byDB[3])
+	}
+	if byDB[4].Keys != 1 {
+		t.Fatalf("expected db4 with keys, got %+v", byDB[4])
+	}
+}
+
+func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
+	srv := startMiniRedis(t)
+	snapshot := CollectRedis(srv.Addr(), "", 4, []int{1, 3, 4})
+	if !snapshot.Available {
+		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
+	}
+	seen := map[int]bool{}
+	for _, db := range snapshot.Databases {
+		seen[db.DB] = true
+		if db.DB == 1 && len(db.Highlights) == 0 {
+			t.Fatalf("expected empty highlight for db1, got %+v", db)
+		}
+	}
+	if !seen[1] || !seen[3] {
+		t.Fatalf("expected watched empty dbs in snapshot, got %#v", snapshot.Databases)
+	}
+}
+
 func TestCollectRedisUnavailable(t *testing.T) {
-	snapshot := CollectRedis("127.0.0.1:1", "", 4)
+	snapshot := CollectRedis("127.0.0.1:1", "", 4, nil)
 	if snapshot.Available {
 		t.Fatal("expected unavailable redis")
 	}

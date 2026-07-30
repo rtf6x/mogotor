@@ -22,7 +22,14 @@ const (
 	oracleJobPrefix     = "advice:job:"
 	oracleEventsChannel = "advice:events"
 	mogotorHistoryKey   = "mogotor:history"
+	redisMemoryKeyLimit = 500
 )
+
+var knownRedisDBLabels = map[int]string{
+	1: "mad-news-bot",
+	3: "bad-advice-oracle",
+	4: "mogotor",
+}
 
 type redisKeyspaceDB struct {
 	DB       int
@@ -37,7 +44,7 @@ type redisJobRaw struct {
 	Attempt int    `json:"attempt"`
 }
 
-func CollectRedis(addr, password string, selfDB int) models.RedisSnapshot {
+func CollectRedis(addr, password string, selfDB int, watchDBs []int) models.RedisSnapshot {
 	if addr == "" {
 		return models.RedisSnapshot{
 			Available: false,
@@ -70,17 +77,15 @@ func CollectRedis(addr, password string, selfDB int) models.RedisSnapshot {
 		UptimeSeconds:    parseRedisInt64(redisInfoValue(info, "uptime_in_seconds")),
 	}
 
-	keyspace := parseRedisKeyspace(info)
-	if len(keyspace) == 0 {
-		keyspace = probeRedisDBs(ctx, addr, password, 16)
-	}
+	keyspace := mergeRedisDBs(parseRedisKeyspace(info), probeRedisDBs(ctx, addr, password, 16), watchDBs)
 	if len(keyspace) == 0 {
 		return snapshot
 	}
 
+	watched := watchedDBSet(watchDBs)
 	databases := make([]models.RedisDBSnapshot, 0, len(keyspace))
 	for _, db := range keyspace {
-		if db.Keys == 0 {
+		if db.Keys == 0 && !watched[db.DB] {
 			continue
 		}
 		dbClient := redis.NewClient(&redis.Options{
@@ -105,6 +110,15 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		AvgTTLMs: meta.AvgTTLMs,
 		Mode:     "summary",
 	}
+	if label := knownRedisDBLabels[meta.DB]; label != "" {
+		snapshot.Label = label
+	}
+
+	if meta.Keys > 0 {
+		memoryBytes, approx := collectDBMemoryBytes(ctx, client)
+		snapshot.MemoryBytes = memoryBytes
+		snapshot.MemoryApprox = approx
+	}
 
 	if isOracleQueueDB(ctx, client) {
 		snapshot.Mode = "queue"
@@ -114,8 +128,11 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 	}
 
 	snapshot.Highlights = collectRedisHighlights(ctx, client, selfDB, meta.DB)
-	if meta.DB == selfDB {
+	if meta.DB == selfDB && snapshot.Label == "" {
 		snapshot.Label = "mogotor"
+	}
+	if meta.Keys == 0 {
+		snapshot.Highlights = []string{"empty"}
 	}
 	return snapshot
 }
@@ -202,7 +219,7 @@ func collectRedisHighlights(ctx context.Context, client *redis.Client, selfDB, d
 
 	if exists, _ := client.Exists(ctx, mogotorHistoryKey).Result(); exists > 0 {
 		if count, err := client.ZCard(ctx, mogotorHistoryKey).Result(); err == nil {
-			highlights = append(highlights, fmt.Sprintf("%s (zset, %d members)", mogotorHistoryKey, count))
+			highlights = append(highlights, fmt.Sprintf("%s (zset, %d points, 24h metrics)", mogotorHistoryKey, count))
 		}
 	}
 
@@ -211,6 +228,80 @@ func collectRedisHighlights(ctx context.Context, client *redis.Client, selfDB, d
 	}
 
 	return highlights
+}
+
+func collectDBMemoryBytes(ctx context.Context, client *redis.Client) (uint64, bool) {
+	total, err := client.Eval(ctx, `
+local cursor = "0"
+local total = 0
+local scanned = 0
+repeat
+  local res = redis.call("SCAN", cursor, "MATCH", "*", "COUNT", 100)
+  cursor = res[1]
+  for _, key in ipairs(res[2]) do
+    local usage = redis.call("MEMORY", "USAGE", key)
+    if usage then
+      total = total + usage
+    end
+    scanned = scanned + 1
+    if scanned >= tonumber(ARGV[1]) then
+      return {total, 1}
+    end
+  end
+until cursor == "0"
+return {total, 0}
+`, []string{}, redisMemoryKeyLimit).Result()
+	if err != nil {
+		return 0, false
+	}
+	values, ok := total.([]any)
+	if !ok || len(values) != 2 {
+		return 0, false
+	}
+	bytes, _ := values[0].(int64)
+	approx, _ := values[1].(int64)
+	return uint64(bytes), approx == 1
+}
+
+func mergeRedisDBs(keyspace, probed []redisKeyspaceDB, watchDBs []int) []redisKeyspaceDB {
+	byDB := make(map[int]redisKeyspaceDB)
+	for _, db := range keyspace {
+		byDB[db.DB] = db
+	}
+	for _, db := range probed {
+		existing, ok := byDB[db.DB]
+		if !ok || db.Keys > existing.Keys {
+			if ok {
+				db.Expires = existing.Expires
+				db.AvgTTLMs = existing.AvgTTLMs
+			}
+			byDB[db.DB] = db
+		}
+	}
+	for _, dbNum := range watchDBs {
+		if _, ok := byDB[dbNum]; !ok {
+			byDB[dbNum] = redisKeyspaceDB{DB: dbNum}
+		}
+	}
+	out := make([]redisKeyspaceDB, 0, len(byDB))
+	for _, db := range byDB {
+		out = append(out, db)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].DB < out[j].DB
+	})
+	return out
+}
+
+func watchedDBSet(watchDBs []int) map[int]bool {
+	if len(watchDBs) == 0 {
+		return map[int]bool{0: true, 1: true, 2: true, 3: true, 4: true}
+	}
+	out := make(map[int]bool, len(watchDBs))
+	for _, db := range watchDBs {
+		out[db] = true
+	}
+	return out
 }
 
 func parseRedisKeyspace(info string) []redisKeyspaceDB {

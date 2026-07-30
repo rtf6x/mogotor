@@ -14,6 +14,7 @@ const (
 	DefaultRetention       = 24 * time.Hour
 	DefaultRedisAddr       = "127.0.0.1:63719"
 	DefaultRedisDB         = 4
+	DefaultRedisWatchDBs   = "0,1,2,3,4"
 	DefaultDploDataDir        = "/var/lib/dplo"
 	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
 	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"
@@ -27,6 +28,7 @@ type Config struct {
 	RedisAddr       string
 	RedisPassword   string
 	RedisDB         int
+	RedisWatchDBs   []int
 	DploDataDir        string
 	DploHealthURL      string
 	OpenVPNStatusPath  string
@@ -45,6 +47,7 @@ func Load() Config {
 		RedisAddr:       resolveRedisAddr(),
 		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
 		RedisDB:         envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
+		RedisWatchDBs:   resolveRedisWatchDBs(),
 		DploDataDir:        envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
 		DploHealthURL:      envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
 		OpenVPNStatusPath:  envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
@@ -73,6 +76,32 @@ func resolveMongoURI(dataDir string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(data))
+}
+
+func resolveRedisWatchDBs() []int {
+	raw := envOr("MOGOTOR_REDIS_WATCH_DBS", DefaultRedisWatchDBs)
+	parts := strings.Split(raw, ",")
+	out := make([]int, 0, len(parts))
+	seen := make(map[int]struct{}, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		db, err := strconv.Atoi(part)
+		if err != nil || db < 0 {
+			continue
+		}
+		if _, ok := seen[db]; ok {
+			continue
+		}
+		seen[db] = struct{}{}
+		out = append(out, db)
+	}
+	if len(out) == 0 {
+		return []int{0, 1, 2, 3, 4}
+	}
+	return out
 }
 
 func resolveRedisAddr() string {

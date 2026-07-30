@@ -167,9 +167,11 @@ type RedisQueueSnapshot struct {
 type RedisDBSnapshot struct {
 	DB         int                 `json:"db"`
 	Keys       int                 `json:"keys"`
-	Expires    int                 `json:"expires,omitempty"`
-	AvgTTLMs   int64               `json:"avgTtlMs,omitempty"`
-	Mode       string              `json:"mode"`
+	Expires        int                 `json:"expires,omitempty"`
+	AvgTTLMs       int64               `json:"avgTtlMs,omitempty"`
+	MemoryBytes    uint64              `json:"memoryBytes,omitempty"`
+	MemoryApprox   bool                `json:"memoryApprox,omitempty"`
+	Mode           string              `json:"mode"`
 	Label      string              `json:"label,omitempty"`
 	Queue      *RedisQueueSnapshot `json:"queue,omitempty"`
 	Highlights []string            `json:"highlights,omitempty"`
