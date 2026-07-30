@@ -21,6 +21,7 @@ const (
 	oracleProcessingKey = "advice:processing"
 	oracleJobPrefix     = "advice:job:"
 	oracleEventsChannel = "advice:events"
+	oracleStatsKey      = "advice:stats"
 	mogotorHistoryKey   = "mogotor:history"
 	redisMemoryKeyLimit = 500
 )
@@ -30,6 +31,8 @@ var knownRedisDBLabels = map[int]string{
 	3: "bad-advice-oracle",
 	4: "mogotor",
 }
+
+const oracleDB = 3
 
 type redisKeyspaceDB struct {
 	DB       int
@@ -120,7 +123,7 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		snapshot.MemoryApprox = approx
 	}
 
-	if isOracleQueueDB(ctx, client) {
+	if isOracleDB(meta.DB) || isOracleQueueDB(ctx, client) {
 		snapshot.Mode = "queue"
 		snapshot.Label = "bad-advice-oracle"
 		snapshot.Queue = collectOracleQueue(ctx, client)
@@ -135,6 +138,10 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		snapshot.Highlights = []string{"empty"}
 	}
 	return snapshot
+}
+
+func isOracleDB(db int) bool {
+	return db == oracleDB
 }
 
 func isOracleQueueDB(ctx context.Context, client *redis.Client) bool {
@@ -183,6 +190,7 @@ return n
 		JobCount:   jobCount,
 		Jobs:       jobs,
 		PubSubChan: oracleEventsChannel,
+		Stats:      collectOracleStats(ctx, client),
 	}
 
 	if subs, err := client.PubSubNumSub(ctx, oracleEventsChannel).Result(); err == nil {
@@ -192,6 +200,24 @@ return n
 	}
 
 	return queue
+}
+
+func collectOracleStats(ctx context.Context, client *redis.Client) *models.RedisOracleStats {
+	values, err := client.HGetAll(ctx, oracleStatsKey).Result()
+	if err != nil || len(values) == 0 {
+		return nil
+	}
+	return &models.RedisOracleStats{
+		Enqueued:       parseRedisInt64(values["enqueued"]),
+		Done:           parseRedisInt64(values["done"]),
+		Failed:         parseRedisInt64(values["failed"]),
+		LastEnqueuedAt: values["last_enqueued_at"],
+		LastDoneAt:     values["last_done_at"],
+		LastFailedAt:   values["last_failed_at"],
+		LastJobID:      values["last_job_id"],
+		LastDoneJobID:  values["last_done_job_id"],
+		LastFailedJobID: values["last_failed_job_id"],
+	}
 }
 
 func loadOracleJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {

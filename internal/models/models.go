@@ -154,6 +154,18 @@ type RedisJobSummary struct {
 	Attempt int    `json:"attempt,omitempty"`
 }
 
+type RedisOracleStats struct {
+	Enqueued        int64  `json:"enqueued"`
+	Done            int64  `json:"done"`
+	Failed          int64  `json:"failed"`
+	LastEnqueuedAt  string `json:"lastEnqueuedAt,omitempty"`
+	LastDoneAt      string `json:"lastDoneAt,omitempty"`
+	LastFailedAt    string `json:"lastFailedAt,omitempty"`
+	LastJobID       string `json:"lastJobId,omitempty"`
+	LastDoneJobID   string `json:"lastDoneJobId,omitempty"`
+	LastFailedJobID string `json:"lastFailedJobId,omitempty"`
+}
+
 type RedisQueueSnapshot struct {
 	Name        string            `json:"name"`
 	Pending     int               `json:"pending"`
@@ -162,6 +174,7 @@ type RedisQueueSnapshot struct {
 	Jobs        []RedisJobSummary `json:"jobs,omitempty"`
 	PubSubChan  string            `json:"pubSubChannel,omitempty"`
 	Subscribers int               `json:"subscribers,omitempty"`
+	Stats       *RedisOracleStats `json:"stats,omitempty"`
 }
 
 type RedisDBSnapshot struct {

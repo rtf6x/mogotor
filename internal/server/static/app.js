@@ -521,6 +521,47 @@ function renderSSH(ssh) {
   `).join("") || `<tr><td colspan="4">No recent failures</td></tr>`;
 }
 
+function formatRelativeTime(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function renderOracleStats(stats) {
+  if (!stats) {
+    return `<div class="service-desc">No lifetime counters yet. Active job keys expire after ~60m. Redeploy bad-advice-oracle to start tracking totals.</div>`;
+  }
+
+  const rows = [
+    ["Enqueued", Number(stats.enqueued || 0).toLocaleString()],
+    ["Done", Number(stats.done || 0).toLocaleString()],
+    ["Failed", Number(stats.failed || 0).toLocaleString()],
+    ["Last enqueued", stats.lastEnqueuedAt ? `${formatRelativeTime(stats.lastEnqueuedAt)}${stats.lastJobId ? ` · ${stats.lastJobId}` : ""}` : "—"],
+    ["Last done", stats.lastDoneAt ? `${formatRelativeTime(stats.lastDoneAt)}${stats.lastDoneJobId ? ` · ${stats.lastDoneJobId}` : ""}` : "—"],
+    ["Last failed", stats.lastFailedAt ? `${formatRelativeTime(stats.lastFailedAt)}${stats.lastFailedJobId ? ` · ${stats.lastFailedJobId}` : ""}` : "—"],
+  ];
+
+  return `
+    <div class="redis-oracle-stats">
+      <div class="service-desc">Lifetime counters (persist after job TTL)</div>
+      ${rows.map(([label, value]) => `
+        <div class="redis-job-row">
+          <span>${label}</span>
+          <span class="mono">${value}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function redisJobStatusClass(status) {
   const value = String(status || "").toLowerCase();
   if (["done", "completed"].includes(value)) return "ok";
@@ -581,6 +622,7 @@ function renderRedis(redis) {
             <div class="redis-queue-stat"><span>Subscribers</span><strong>${queue.subscribers || 0}</strong></div>
           </div>
           <div class="redis-jobs">${jobs}</div>
+          ${renderOracleStats(queue.stats)}
           ${queue.pubSubChannel ? `<div class="service-desc">channel: <span class="mono">${queue.pubSubChannel}</span></div>` : ""}
         </div>
       `;

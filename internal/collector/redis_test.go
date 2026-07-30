@@ -181,9 +181,45 @@ func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
 		if db.DB == 1 && len(db.Highlights) == 0 {
 			t.Fatalf("expected empty highlight for db1, got %+v", db)
 		}
+		if db.DB == 3 {
+			if db.Mode != "queue" {
+				t.Fatalf("expected queue mode for empty oracle db, got %q", db.Mode)
+			}
+			if db.Queue == nil {
+				t.Fatal("expected queue payload for oracle db")
+			}
+		}
 	}
 	if !seen[1] || !seen[3] {
 		t.Fatalf("expected watched empty dbs in snapshot, got %#v", snapshot.Databases)
+	}
+}
+
+func TestCollectOracleStats(t *testing.T) {
+	srv := startMiniRedis(t)
+	ctx := context.Background()
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 3})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	if err := rdb.HSet(ctx, oracleStatsKey,
+		"enqueued", 12,
+		"done", 10,
+		"failed", 2,
+		"last_done_at", "2026-07-30T08:00:00Z",
+		"last_done_job_id", "job-done-1",
+	).Err(); err != nil {
+		t.Fatalf("hset stats: %v", err)
+	}
+
+	stats := collectOracleStats(ctx, rdb)
+	if stats == nil {
+		t.Fatal("expected stats")
+	}
+	if stats.Enqueued != 12 || stats.Done != 10 || stats.Failed != 2 {
+		t.Fatalf("unexpected counters: %+v", stats)
+	}
+	if stats.LastDoneJobID != "job-done-1" {
+		t.Fatalf("unexpected last done job: %+v", stats)
 	}
 }
 

@@ -343,6 +343,13 @@ th {
   gap: 0.35rem;
 }
 
+.redis-oracle-stats {
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-faint);
+}
+
 .redis-job-row {
   display: flex;
   justify-content: space-between;
