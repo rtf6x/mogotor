@@ -154,6 +154,17 @@ type RedisJobSummary struct {
 	Attempt int    `json:"attempt,omitempty"`
 }
 
+type RedisAPODSnapshot struct {
+	CacheKey   string `json:"cacheKey"`
+	Cached     bool   `json:"cached"`
+	Date       string `json:"date,omitempty"`
+	Title      string `json:"title,omitempty"`
+	MediaType  string `json:"mediaType,omitempty"`
+	Copyright  string `json:"copyright,omitempty"`
+	TTLSeconds int64  `json:"ttlSeconds,omitempty"`
+	PhotoURL   string `json:"photoUrl,omitempty"`
+}
+
 type RedisOracleStats struct {
 	Enqueued        int64  `json:"enqueued"`
 	Done            int64  `json:"done"`
@@ -187,6 +198,7 @@ type RedisDBSnapshot struct {
 	Mode           string              `json:"mode"`
 	Label      string              `json:"label,omitempty"`
 	Queue      *RedisQueueSnapshot `json:"queue,omitempty"`
+	APOD       *RedisAPODSnapshot  `json:"apod,omitempty"`
 	Highlights []string            `json:"highlights,omitempty"`
 }
 

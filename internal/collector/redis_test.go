@@ -178,8 +178,13 @@ func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
 	seen := map[int]bool{}
 	for _, db := range snapshot.Databases {
 		seen[db.DB] = true
-		if db.DB == 1 && len(db.Highlights) == 0 {
-			t.Fatalf("expected empty highlight for db1, got %+v", db)
+		if db.DB == 1 {
+			if db.Mode != "apod" {
+				t.Fatalf("expected apod mode for mad-news db, got %q", db.Mode)
+			}
+			if db.APOD == nil || db.APOD.CacheKey != madNewsAPODKey {
+				t.Fatalf("expected apod payload, got %+v", db.APOD)
+			}
 		}
 		if db.DB == 3 {
 			if db.Mode != "queue" {
@@ -192,6 +197,29 @@ func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
 	}
 	if !seen[1] || !seen[3] {
 		t.Fatalf("expected watched empty dbs in snapshot, got %#v", snapshot.Databases)
+	}
+}
+
+func TestCollectMadNewsAPOD(t *testing.T) {
+	srv := startMiniRedis(t)
+	ctx := context.Background()
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 1})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	raw := []byte(`{"date":"2026-07-30","title":"Red Sun","media_type":"image","copyright":"Test","url":"https://apod.nasa.gov/x.jpg"}`)
+	if err := rdb.Set(ctx, madNewsAPODKey, raw, 2*time.Hour).Err(); err != nil {
+		t.Fatalf("set apod: %v", err)
+	}
+
+	apod := collectMadNewsAPOD(ctx, rdb)
+	if apod == nil || !apod.Cached {
+		t.Fatalf("expected cached apod, got %+v", apod)
+	}
+	if apod.Title != "Red Sun" || apod.Date != "2026-07-30" {
+		t.Fatalf("unexpected apod fields: %+v", apod)
+	}
+	if apod.TTLSeconds <= 0 {
+		t.Fatalf("expected positive ttl, got %d", apod.TTLSeconds)
 	}
 }
 

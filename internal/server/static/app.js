@@ -562,6 +562,37 @@ function renderOracleStats(stats) {
   `;
 }
 
+function renderAPOD(apod) {
+  if (!apod) {
+    return `<div class="service-desc">No APOD cache configured.</div>`;
+  }
+  if (!apod.cached) {
+    return `<div class="service-desc"><span class="mono">${apod.cacheKey || "nasa-apod"}</span> not cached. Scheduler runs daily at 06:00 or use /nasaapod prefetch.</div>`;
+  }
+
+  const rows = [
+    ["Key", apod.cacheKey || "nasa-apod"],
+    ["Date", apod.date || "—"],
+    ["Title", apod.title || "—"],
+    ["Type", apod.mediaType || "—"],
+    ["Copyright", apod.copyright || "NASA"],
+    ["TTL", apod.ttlSeconds ? formatUptime(apod.ttlSeconds) : "—"],
+    ["URL", apod.photoUrl || "—"],
+  ];
+
+  return `
+    <div class="redis-oracle-stats">
+      <div class="service-desc">NASA APOD cache (48h TTL)</div>
+      ${rows.map(([label, value]) => `
+        <div class="redis-job-row">
+          <span>${label}</span>
+          <span class="${label === "URL" ? "mono" : ""}">${value}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function redisJobStatusClass(status) {
   const value = String(status || "").toLowerCase();
   if (["done", "completed"].includes(value)) return "ok";
@@ -624,6 +655,21 @@ function renderRedis(redis) {
           <div class="redis-jobs">${jobs}</div>
           ${renderOracleStats(queue.stats)}
           ${queue.pubSubChannel ? `<div class="service-desc">channel: <span class="mono">${queue.pubSubChannel}</span></div>` : ""}
+        </div>
+      `;
+    }
+
+    if (db.mode === "apod") {
+      return `
+        <div class="redis-db-card">
+          <div class="redis-db-header">
+            <div>
+              <div class="redis-db-title">${title}</div>
+              <div class="redis-db-meta">${meta} · apod</div>
+            </div>
+            <span class="pill ok">${db.apod?.cached ? "cached" : "miss"}</span>
+          </div>
+          ${renderAPOD(db.apod)}
         </div>
       `;
     }

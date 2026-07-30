@@ -22,6 +22,7 @@ const (
 	oracleJobPrefix     = "advice:job:"
 	oracleEventsChannel = "advice:events"
 	oracleStatsKey      = "advice:stats"
+	madNewsAPODKey      = "nasa-apod"
 	mogotorHistoryKey   = "mogotor:history"
 	redisMemoryKeyLimit = 500
 )
@@ -33,6 +34,7 @@ var knownRedisDBLabels = map[int]string{
 }
 
 const oracleDB = 3
+const madNewsDB = 1
 
 type redisKeyspaceDB struct {
 	DB       int
@@ -45,6 +47,14 @@ type redisJobRaw struct {
 	ID      string `json:"id"`
 	Status  string `json:"status"`
 	Attempt int    `json:"attempt"`
+}
+
+type redisAPODRaw struct {
+	Date      string `json:"date"`
+	Title     string `json:"title"`
+	MediaType string `json:"media_type"`
+	Copyright string `json:"copyright"`
+	URL       string `json:"url"`
 }
 
 func CollectRedis(addr, password string, selfDB int, watchDBs []int) models.RedisSnapshot {
@@ -130,6 +140,13 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		return snapshot
 	}
 
+	if isMadNewsDB(meta.DB) || hasMadNewsAPOD(ctx, client) {
+		snapshot.Mode = "apod"
+		snapshot.Label = "mad-news-bot"
+		snapshot.APOD = collectMadNewsAPOD(ctx, client)
+		return snapshot
+	}
+
 	snapshot.Highlights = collectRedisHighlights(ctx, client, selfDB, meta.DB)
 	if meta.DB == selfDB && snapshot.Label == "" {
 		snapshot.Label = "mogotor"
@@ -142,6 +159,15 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 
 func isOracleDB(db int) bool {
 	return db == oracleDB
+}
+
+func isMadNewsDB(db int) bool {
+	return db == madNewsDB
+}
+
+func hasMadNewsAPOD(ctx context.Context, client *redis.Client) bool {
+	exists, err := client.Exists(ctx, madNewsAPODKey).Result()
+	return err == nil && exists > 0
 }
 
 func isOracleQueueDB(ctx context.Context, client *redis.Client) bool {
@@ -218,6 +244,35 @@ func collectOracleStats(ctx context.Context, client *redis.Client) *models.Redis
 		LastDoneJobID:  values["last_done_job_id"],
 		LastFailedJobID: values["last_failed_job_id"],
 	}
+}
+
+func collectMadNewsAPOD(ctx context.Context, client *redis.Client) *models.RedisAPODSnapshot {
+	snapshot := &models.RedisAPODSnapshot{
+		CacheKey: madNewsAPODKey,
+		Cached:   false,
+	}
+	ttl, err := client.TTL(ctx, madNewsAPODKey).Result()
+	if err != nil {
+		return snapshot
+	}
+	if ttl > 0 {
+		snapshot.TTLSeconds = int64(ttl.Seconds())
+	}
+	raw, err := client.Get(ctx, madNewsAPODKey).Bytes()
+	if err != nil {
+		return snapshot
+	}
+	var item redisAPODRaw
+	if err := json.Unmarshal(raw, &item); err != nil {
+		return snapshot
+	}
+	snapshot.Cached = true
+	snapshot.Date = item.Date
+	snapshot.Title = item.Title
+	snapshot.MediaType = item.MediaType
+	snapshot.Copyright = item.Copyright
+	snapshot.PhotoURL = item.URL
+	return snapshot
 }
 
 func loadOracleJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
