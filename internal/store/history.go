@@ -68,6 +68,7 @@ func (h *History) Load() error {
 		if err := h.migrateLegacyFile(ctx); err != nil {
 			return err
 		}
+		h.legacyPath = ""
 		return h.Load()
 	}
 

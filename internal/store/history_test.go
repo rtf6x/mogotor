@@ -79,7 +79,7 @@ func TestHistoryMigratesLegacyFile(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/history.json"
 
-	legacy := []byte(`[{"timestamp":"2026-07-22T10:00:00Z","cpuPercent":42.1}]`)
+	legacy := []byte(`[{"timestamp":"` + time.Now().Add(-time.Hour).Format(time.RFC3339) + `","cpuPercent":42.1}]`)
 	if err := os.WriteFile(path, legacy, 0o644); err != nil {
 		t.Fatalf("write legacy file: %v", err)
 	}
