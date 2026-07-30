@@ -28,13 +28,13 @@ const (
 )
 
 var knownRedisDBLabels = map[int]string{
-	1: "mad-news-bot",
+	0: "mad-news-bot",
 	3: "bad-advice-oracle",
 	4: "mogotor",
 }
 
 const oracleDB = 3
-const madNewsDB = 1
+const madNewsDB = 0
 
 type redisKeyspaceDB struct {
 	DB       int

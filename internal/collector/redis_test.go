@@ -178,12 +178,17 @@ func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
 	seen := map[int]bool{}
 	for _, db := range snapshot.Databases {
 		seen[db.DB] = true
-		if db.DB == 1 {
+		if db.DB == 0 {
 			if db.Mode != "apod" {
 				t.Fatalf("expected apod mode for mad-news db, got %q", db.Mode)
 			}
 			if db.APOD == nil || db.APOD.CacheKey != madNewsAPODKey {
 				t.Fatalf("expected apod payload, got %+v", db.APOD)
+			}
+		}
+		if db.DB == 1 {
+			if db.Mode == "apod" {
+				t.Fatalf("db1 should not use mad-news apod mode, got %+v", db)
 			}
 		}
 		if db.DB == 3 {
@@ -203,7 +208,7 @@ func TestCollectRedisShowsWatchedEmptyDB(t *testing.T) {
 func TestCollectMadNewsAPOD(t *testing.T) {
 	srv := startMiniRedis(t)
 	ctx := context.Background()
-	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 1})
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 0})
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	raw := []byte(`{"date":"2026-07-30","title":"Red Sun","media_type":"image","copyright":"Test","url":"https://apod.nasa.gov/x.jpg"}`)
