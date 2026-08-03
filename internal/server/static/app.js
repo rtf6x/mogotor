@@ -14,13 +14,13 @@ const PREVIEW_HOURS = 1;
 const CHART_SPECS = {
   cpu: {
     id: "cpu-chart",
-    title: "CPU usage",
+    title: "CPU usage · %",
     multi: false,
     datasets: [{ label: "CPU %", color: theme.brand, fill: true, value: (point) => point.cpuPercent }],
   },
   memory: {
     id: "memory-chart",
-    title: "Memory usage",
+    title: "Memory usage · %",
     multi: false,
     datasets: [{
       label: "Memory %",
@@ -31,7 +31,7 @@ const CHART_SPECS = {
   },
   swap: {
     id: "swap-chart",
-    title: "Swap usage",
+    title: "Swap usage · %",
     multi: false,
     datasets: [{
       label: "Swap %",
@@ -42,13 +42,13 @@ const CHART_SPECS = {
   },
   disk: {
     id: "disk-chart",
-    title: "Disk usage (/)",
+    title: "Disk usage (/) · %",
     multi: false,
     datasets: [{ label: "Disk %", color: theme.brandSoft, fill: true, value: (point) => point.diskUsedPercent }],
   },
   network: {
     id: "network-chart",
-    title: "Network throughput",
+    title: "Network throughput · B/s",
     multi: true,
     datasets: [
       { label: "Receive", color: theme.brand, fill: false, value: (point) => point.netRecvBps },
@@ -57,7 +57,7 @@ const CHART_SPECS = {
   },
   load: {
     id: "load-chart",
-    title: "Load average",
+    title: "Load average · 1 / 5 / 15 min",
     multi: true,
     datasets: [
       { label: "1 min", color: theme.brand, fill: false, value: (point) => point.load1 },
