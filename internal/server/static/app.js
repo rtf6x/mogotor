@@ -546,7 +546,7 @@ function renderOracleStats(stats) {
     return `
       <div class="redis-section">
         <div class="redis-section-title">Lifetime</div>
-        <div class="service-desc">No lifetime counters yet. Active job keys expire after ~60m. Redeploy bad-advice-oracle to start tracking totals.</div>
+        <div class="service-desc">No lifetime counters yet. Active job keys expire after ~60m. Redeploy the service to start tracking totals.</div>
       </div>
     `;
   }
@@ -615,7 +615,7 @@ function renderQueueCard(db) {
   const title = db.label ? `db ${db.db} · ${db.label}` : `db ${db.db}`;
   const memory = db.memoryBytes ? `${formatBytes(db.memoryBytes)}${db.memoryApprox ? "+" : ""}` : "0 B";
   const meta = `${db.keys} keys · ${memory}${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
-  const showStats = queue.name === "advice";
+  const showStats = queue.name === "advice" || queue.name === "summary";
 
   return `
     <div class="redis-db-card">

@@ -14,20 +14,25 @@ import (
 )
 
 const (
-	redisCollectTimeout = 5 * time.Second
+	redisCollectTimeout  = 5 * time.Second
 	redisMaxJobSummaries = 8
 
-	oracleQueueKey      = "advice:queue"
-	oracleProcessingKey = "advice:processing"
-	oracleJobPrefix     = "advice:job:"
-	oracleEventsChannel = "advice:events"
-	oracleStatsKey      = "advice:stats"
-	critiqueQueueKey    = "critique:queue"
-	critiqueJobPrefix   = "critique:job:"
+	oracleQueueKey        = "advice:queue"
+	oracleProcessingKey   = "advice:processing"
+	oracleJobPrefix       = "advice:job:"
+	oracleEventsChannel   = "advice:events"
+	oracleStatsKey        = "advice:stats"
+	vchatQueueKey         = "summary:queue"
+	vchatProcessingKey    = "summary:processing"
+	vchatJobPrefix        = "summary:job:"
+	vchatEventsChannel    = "summary:events"
+	vchatStatsKey         = "summary:stats"
+	critiqueQueueKey      = "critique:queue"
+	critiqueJobPrefix     = "critique:job:"
 	critiqueEventsChannel = "critique:events"
-	madNewsAPODKey      = "nasa-apod"
-	mogotorHistoryKey   = "mogotor:history"
-	redisMemoryKeyLimit = 500
+	madNewsAPODKey        = "nasa-apod"
+	mogotorHistoryKey     = "mogotor:history"
+	redisMemoryKeyLimit   = 500
 )
 
 var knownRedisDBLabels = map[int]string{
@@ -35,11 +40,13 @@ var knownRedisDBLabels = map[int]string{
 	2: "art-direction-agent",
 	3: "bad-advice-oracle",
 	4: "mogotor",
+	5: "vchat",
 }
 
 const oracleDB = 3
 const critiqueDB = 2
 const madNewsDB = 0
+const vchatDB = 5
 
 type redisKeyspaceDB struct {
 	DB       int
@@ -142,6 +149,13 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		return snapshot
 	}
 
+	if isVchatDB(meta.DB) || isVchatQueueDB(ctx, client) {
+		snapshot.Mode = "queue"
+		snapshot.Label = "vchat"
+		snapshot.Queue = collectVchatQueue(ctx, client)
+		return snapshot
+	}
+
 	if isCritiqueDB(meta.DB) || isCritiqueQueueDB(ctx, client) {
 		snapshot.Mode = "queue"
 		snapshot.Label = "art-direction-agent"
@@ -168,6 +182,10 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 
 func isOracleDB(db int) bool {
 	return db == oracleDB
+}
+
+func isVchatDB(db int) bool {
+	return db == vchatDB
 }
 
 func isMadNewsDB(db int) bool {
@@ -202,6 +220,14 @@ func hasMadNewsAPOD(ctx context.Context, client *redis.Client) bool {
 
 func isOracleQueueDB(ctx context.Context, client *redis.Client) bool {
 	queueExists, err := client.Exists(ctx, oracleQueueKey, oracleProcessingKey).Result()
+	if err != nil {
+		return false
+	}
+	return queueExists > 0
+}
+
+func isVchatQueueDB(ctx context.Context, client *redis.Client) bool {
+	queueExists, err := client.Exists(ctx, vchatQueueKey, vchatProcessingKey).Result()
 	if err != nil {
 		return false
 	}
@@ -246,11 +272,61 @@ return n
 		JobCount:   jobCount,
 		Jobs:       jobs,
 		PubSubChan: oracleEventsChannel,
-		Stats:      collectOracleStats(ctx, client),
+		Stats:      collectQueueStats(ctx, client, oracleStatsKey),
 	}
 
 	if subs, err := client.PubSubNumSub(ctx, oracleEventsChannel).Result(); err == nil {
 		if count, ok := subs[oracleEventsChannel]; ok {
+			queue.Subscribers = int(count)
+		}
+	}
+
+	return queue
+}
+
+func collectVchatQueue(ctx context.Context, client *redis.Client) *models.RedisQueueSnapshot {
+	pending, _ := client.LLen(ctx, vchatQueueKey).Result()
+	processing, _ := client.LLen(ctx, vchatProcessingKey).Result()
+
+	pendingIDs, _ := client.LRange(ctx, vchatQueueKey, 0, -1).Result()
+	processingIDs, _ := client.LRange(ctx, vchatProcessingKey, 0, -1).Result()
+	jobIDs := uniqueStrings(append(processingIDs, pendingIDs...))
+
+	jobs := make([]models.RedisJobSummary, 0, redisMaxJobSummaries)
+	for _, id := range jobIDs {
+		if len(jobs) >= redisMaxJobSummaries {
+			break
+		}
+		if summary, ok := loadVchatJobSummary(ctx, client, id); ok {
+			jobs = append(jobs, summary)
+		} else {
+			jobs = append(jobs, models.RedisJobSummary{ID: id, Status: "unknown"})
+		}
+	}
+
+	jobCount, _ := client.Eval(ctx, `
+local n = 0
+local cursor = "0"
+repeat
+  local res = redis.call("SCAN", cursor, "MATCH", "summary:job:*", "COUNT", 100)
+  cursor = res[1]
+  n = n + #res[2]
+until cursor == "0"
+return n
+`, []string{}).Int()
+
+	queue := &models.RedisQueueSnapshot{
+		Name:       "summary",
+		Pending:    int(pending),
+		Processing: int(processing),
+		JobCount:   jobCount,
+		Jobs:       jobs,
+		PubSubChan: vchatEventsChannel,
+		Stats:      collectQueueStats(ctx, client, vchatStatsKey),
+	}
+
+	if subs, err := client.PubSubNumSub(ctx, vchatEventsChannel).Result(); err == nil {
+		if count, ok := subs[vchatEventsChannel]; ok {
 			queue.Subscribers = int(count)
 		}
 	}
@@ -349,19 +425,23 @@ func loadCritiqueJobSummary(ctx context.Context, client *redis.Client, id string
 }
 
 func collectOracleStats(ctx context.Context, client *redis.Client) *models.RedisOracleStats {
-	values, err := client.HGetAll(ctx, oracleStatsKey).Result()
+	return collectQueueStats(ctx, client, oracleStatsKey)
+}
+
+func collectQueueStats(ctx context.Context, client *redis.Client, key string) *models.RedisOracleStats {
+	values, err := client.HGetAll(ctx, key).Result()
 	if err != nil || len(values) == 0 {
 		return nil
 	}
 	return &models.RedisOracleStats{
-		Enqueued:       parseRedisInt64(values["enqueued"]),
-		Done:           parseRedisInt64(values["done"]),
-		Failed:         parseRedisInt64(values["failed"]),
-		LastEnqueuedAt: values["last_enqueued_at"],
-		LastDoneAt:     values["last_done_at"],
-		LastFailedAt:   values["last_failed_at"],
-		LastJobID:      values["last_job_id"],
-		LastDoneJobID:  values["last_done_job_id"],
+		Enqueued:        parseRedisInt64(values["enqueued"]),
+		Done:            parseRedisInt64(values["done"]),
+		Failed:          parseRedisInt64(values["failed"]),
+		LastEnqueuedAt:  values["last_enqueued_at"],
+		LastDoneAt:      values["last_done_at"],
+		LastFailedAt:    values["last_failed_at"],
+		LastJobID:       values["last_job_id"],
+		LastDoneJobID:   values["last_done_job_id"],
 		LastFailedJobID: values["last_failed_job_id"],
 	}
 }
@@ -384,6 +464,26 @@ func collectMadNewsAPOD(ctx context.Context, client *redis.Client) *models.Redis
 
 func loadOracleJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
 	raw, err := client.Get(ctx, oracleJobPrefix+id).Bytes()
+	if err != nil {
+		return models.RedisJobSummary{}, false
+	}
+
+	var job redisJobRaw
+	if err := json.Unmarshal(raw, &job); err != nil {
+		return models.RedisJobSummary{ID: id, Status: "unknown"}, true
+	}
+	if job.ID == "" {
+		job.ID = id
+	}
+	return models.RedisJobSummary{
+		ID:      job.ID,
+		Status:  job.Status,
+		Attempt: job.Attempt,
+	}, true
+}
+
+func loadVchatJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
+	raw, err := client.Get(ctx, vchatJobPrefix+id).Bytes()
 	if err != nil {
 		return models.RedisJobSummary{}, false
 	}
@@ -483,7 +583,7 @@ func mergeRedisDBs(keyspace, probed []redisKeyspaceDB, watchDBs []int) []redisKe
 
 func watchedDBSet(watchDBs []int) map[int]bool {
 	if len(watchDBs) == 0 {
-		return map[int]bool{0: true, 1: true, 2: true, 3: true, 4: true}
+		return map[int]bool{0: true, 1: true, 2: true, 3: true, 4: true, 5: true}
 	}
 	out := make(map[int]bool, len(watchDBs))
 	for _, db := range watchDBs {

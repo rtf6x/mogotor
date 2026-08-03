@@ -316,6 +316,126 @@ func TestCollectOracleStats(t *testing.T) {
 	}
 }
 
+func TestCollectVchatSummaryQueueDB(t *testing.T) {
+	srv := startMiniRedis(t)
+	ctx := context.Background()
+
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr(), DB: 5})
+	t.Cleanup(func() { _ = rdb.Close() })
+
+	jobQueued := map[string]any{
+		"id":         "sum-queued",
+		"status":     "queued",
+		"attempt":    1,
+		"transcript": "secret transcript",
+	}
+	jobProcessing := map[string]any{
+		"id":         "sum-processing",
+		"status":     "processing",
+		"attempt":    2,
+		"transcript": "another secret",
+	}
+	queuedRaw, _ := json.Marshal(jobQueued)
+	processingRaw, _ := json.Marshal(jobProcessing)
+
+	if err := rdb.Set(ctx, "summary:job:sum-queued", queuedRaw, time.Hour).Err(); err != nil {
+		t.Fatalf("set queued job: %v", err)
+	}
+	if err := rdb.Set(ctx, "summary:job:sum-processing", processingRaw, time.Hour).Err(); err != nil {
+		t.Fatalf("set processing job: %v", err)
+	}
+	if err := rdb.RPush(ctx, "summary:queue", "sum-queued", "sum-extra").Err(); err != nil {
+		t.Fatalf("queue push: %v", err)
+	}
+	if err := rdb.RPush(ctx, "summary:processing", "sum-processing").Err(); err != nil {
+		t.Fatalf("processing push: %v", err)
+	}
+	if err := rdb.HSet(ctx, "summary:stats",
+		"enqueued", 5,
+		"done", 3,
+		"failed", 1,
+		"last_done_at", "2026-08-03T18:00:00Z",
+		"last_done_job_id", "sum-done-1",
+	).Err(); err != nil {
+		t.Fatalf("hset stats: %v", err)
+	}
+
+	snapshot := CollectRedis(srv.Addr(), "", 4, []int{0, 1, 2, 3, 4, 5})
+	if !snapshot.Available {
+		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
+	}
+
+	var queueDB *models.RedisDBSnapshot
+	for i := range snapshot.Databases {
+		if snapshot.Databases[i].DB == 5 {
+			queueDB = &snapshot.Databases[i]
+			break
+		}
+	}
+	if queueDB == nil {
+		t.Fatalf("expected db 5 in snapshot: %+v", snapshot.Databases)
+	}
+	if queueDB.Mode != "queue" {
+		t.Fatalf("expected queue mode, got %q", queueDB.Mode)
+	}
+	if queueDB.Label != "vchat" {
+		t.Fatalf("expected vchat label, got %q", queueDB.Label)
+	}
+	if queueDB.Queue == nil {
+		t.Fatal("expected queue details")
+	}
+	if queueDB.Queue.Name != "summary" {
+		t.Fatalf("expected summary queue name, got %q", queueDB.Queue.Name)
+	}
+	if queueDB.Queue.Pending != 2 || queueDB.Queue.Processing != 1 {
+		t.Fatalf("queue counts: pending=%d processing=%d", queueDB.Queue.Pending, queueDB.Queue.Processing)
+	}
+	if queueDB.Queue.JobCount != 2 {
+		t.Fatalf("expected 2 job keys, got %d", queueDB.Queue.JobCount)
+	}
+	if queueDB.Queue.PubSubChan != "summary:events" {
+		t.Fatalf("expected summary:events channel, got %q", queueDB.Queue.PubSubChan)
+	}
+	if queueDB.Queue.Stats == nil {
+		t.Fatal("expected lifetime stats")
+	}
+	if queueDB.Queue.Stats.Enqueued != 5 || queueDB.Queue.Stats.Done != 3 || queueDB.Queue.Stats.Failed != 1 {
+		t.Fatalf("unexpected stats: %+v", queueDB.Queue.Stats)
+	}
+	for _, job := range queueDB.Queue.Jobs {
+		if job.ID == "sum-queued" && job.Status != "queued" {
+			t.Fatalf("queued job status: %+v", job)
+		}
+	}
+}
+
+func TestCollectRedisShowsWatchedEmptyVchatDB(t *testing.T) {
+	srv := startMiniRedis(t)
+	snapshot := CollectRedis(srv.Addr(), "", 4, []int{5})
+	if !snapshot.Available {
+		t.Fatalf("expected available redis, got error: %s", snapshot.Error)
+	}
+	var vchatDB *models.RedisDBSnapshot
+	for i := range snapshot.Databases {
+		if snapshot.Databases[i].DB == 5 {
+			vchatDB = &snapshot.Databases[i]
+			break
+		}
+	}
+	if vchatDB == nil {
+		t.Fatalf("expected watched empty db5, got %#v", snapshot.Databases)
+	}
+	if vchatDB.Mode != "queue" {
+		t.Fatalf("expected queue mode for empty vchat db, got %q", vchatDB.Mode)
+	}
+	if vchatDB.Label != "vchat" {
+		t.Fatalf("expected vchat label, got %q", vchatDB.Label)
+	}
+	if vchatDB.Queue == nil {
+		t.Fatal("expected queue payload for vchat db")
+	}
+}
+
 func TestCollectRedisUnavailable(t *testing.T) {
 	snapshot := CollectRedis("127.0.0.1:1", "", 4, nil)
 	if snapshot.Available {

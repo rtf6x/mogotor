@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	DefaultPort            = 8188
-	DefaultCollectInterval = time.Minute
-	DefaultRetention       = 24 * time.Hour
-	DefaultRedisAddr       = "127.0.0.1:63719"
-	DefaultRedisDB         = 4
-	DefaultRedisWatchDBs   = "0,1,2,3,4"
+	DefaultPort               = 8188
+	DefaultCollectInterval    = time.Minute
+	DefaultRetention          = 24 * time.Hour
+	DefaultRedisAddr          = "127.0.0.1:63719"
+	DefaultRedisDB            = 4
+	DefaultRedisWatchDBs      = "0,1,2,3,4,5"
 	DefaultDploDataDir        = "/var/lib/dplo"
 	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
 	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"
@@ -22,38 +22,38 @@ const (
 )
 
 type Config struct {
-	Addr            string
-	DataDir         string
-	MongoURI        string
-	RedisAddr       string
-	RedisPassword   string
-	RedisDB         int
-	RedisWatchDBs   []int
+	Addr               string
+	DataDir            string
+	MongoURI           string
+	RedisAddr          string
+	RedisPassword      string
+	RedisDB            int
+	RedisWatchDBs      []int
 	DploDataDir        string
 	DploHealthURL      string
 	OpenVPNStatusPath  string
 	OpenVPNServiceName string
 	CollectInterval    time.Duration
-	Retention       time.Duration
-	Services        []string
+	Retention          time.Duration
+	Services           []string
 }
 
 func Load() Config {
 	dataDir := envOr("MOGOTOR_DATA_DIR", defaultDataDir())
 	return Config{
-		Addr:            envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
-		DataDir:         dataDir,
-		MongoURI:        resolveMongoURI(dataDir),
-		RedisAddr:       resolveRedisAddr(),
-		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
-		RedisDB:         envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
-		RedisWatchDBs:   resolveRedisWatchDBs(),
+		Addr:               envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
+		DataDir:            dataDir,
+		MongoURI:           resolveMongoURI(dataDir),
+		RedisAddr:          resolveRedisAddr(),
+		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
+		RedisDB:            envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
+		RedisWatchDBs:      resolveRedisWatchDBs(),
 		DploDataDir:        envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
 		DploHealthURL:      envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
 		OpenVPNStatusPath:  envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
 		OpenVPNServiceName: envOr("MOGOTOR_OPENVPN_SERVICE", DefaultOpenVPNServiceName),
 		CollectInterval:    DefaultCollectInterval,
-		Retention:       DefaultRetention,
+		Retention:          DefaultRetention,
 		Services: []string{
 			"mongod",
 			"nginx",
@@ -99,7 +99,7 @@ func resolveRedisWatchDBs() []int {
 		out = append(out, db)
 	}
 	if len(out) == 0 {
-		return []int{0, 1, 2, 3, 4}
+		return []int{0, 1, 2, 3, 4, 5}
 	}
 	return out
 }
