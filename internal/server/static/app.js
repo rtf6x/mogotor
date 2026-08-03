@@ -48,11 +48,11 @@ const CHART_SPECS = {
   },
   network: {
     id: "network-chart",
-    title: "Network throughput · B/s",
+    title: "Network throughput · kb/s",
     multi: true,
     datasets: [
-      { label: "Receive", color: theme.brand, fill: false, value: (point) => point.netRecvBps },
-      { label: "Send", color: theme.brandSoft, fill: false, value: (point) => point.netSendBps },
+      { label: "Receive", color: theme.brand, fill: false, value: (point) => point.netRecvBps / 1024 },
+      { label: "Send", color: theme.brandSoft, fill: false, value: (point) => point.netSendBps / 1024 },
     ],
   },
   load: {
