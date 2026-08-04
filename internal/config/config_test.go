@@ -12,6 +12,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("REDIS_ADDR", "")
 	t.Setenv("REDIS_PASSWORD", "")
 	t.Setenv("MOGOTOR_REDIS_DB", "")
+	t.Setenv("MOGOTOR_REDIS_WATCH_DBS", "")
 	t.Setenv("MOGOTOR_RABBIT_URL", "")
 	t.Setenv("MOGOTOR_RABBIT_USER", "")
 	t.Setenv("MOGOTOR_RABBIT_PASSWORD", "")
@@ -25,6 +26,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.RedisDB != DefaultRedisDB {
 		t.Fatalf("expected default redis db %d, got %d", DefaultRedisDB, cfg.RedisDB)
+	}
+	if len(cfg.RedisWatchDBs) != 2 || cfg.RedisWatchDBs[0] != 0 || cfg.RedisWatchDBs[1] != 4 {
+		t.Fatalf("expected default watch dbs [0 4], got %v", cfg.RedisWatchDBs)
 	}
 	if cfg.RabbitURL != DefaultRabbitURL {
 		t.Fatalf("expected default rabbit url %s, got %s", DefaultRabbitURL, cfg.RabbitURL)

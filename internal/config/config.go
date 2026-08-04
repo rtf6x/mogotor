@@ -14,7 +14,7 @@ const (
 	DefaultRetention          = 24 * time.Hour
 	DefaultRedisAddr          = "127.0.0.1:63719"
 	DefaultRedisDB            = 4
-	DefaultRedisWatchDBs      = "0,1,2,3,4,5"
+	DefaultRedisWatchDBs      = "0,4"
 	DefaultDploDataDir        = "/var/lib/dplo"
 	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
 	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"

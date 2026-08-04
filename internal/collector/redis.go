@@ -2,7 +2,6 @@ package collector
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -14,56 +13,25 @@ import (
 )
 
 const (
-	redisCollectTimeout  = 5 * time.Second
-	redisMaxJobSummaries = 8
+	redisCollectTimeout = 5 * time.Second
 
-	oracleQueueKey        = "advice:queue"
-	oracleProcessingKey   = "advice:processing"
-	oracleJobPrefix       = "advice:job:"
-	oracleEventsChannel   = "advice:events"
-	oracleStatsKey        = "advice:stats"
-	vchatQueueKey         = "summary:queue"
-	vchatProcessingKey    = "summary:processing"
-	vchatJobPrefix        = "summary:job:"
-	vchatEventsChannel    = "summary:events"
-	vchatStatsKey         = "summary:stats"
-	critiqueQueueKey      = "critique:queue"
-	critiqueJobPrefix     = "critique:job:"
-	critiqueEventsChannel = "critique:events"
-	madNewsAPODKey        = "nasa-apod"
-	mogotorHistoryKey     = "mogotor:history"
-	redisMemoryKeyLimit   = 500
+	madNewsAPODKey      = "nasa-apod"
+	mogotorHistoryKey   = "mogotor:history"
+	redisMemoryKeyLimit = 500
 )
 
 var knownRedisDBLabels = map[int]string{
 	0: "mad-news-bot",
-	2: "art-direction-agent",
-	3: "bad-advice-oracle",
 	4: "mogotor",
-	5: "vchat",
 }
 
-const oracleDB = 3
-const critiqueDB = 2
 const madNewsDB = 0
-const vchatDB = 5
 
 type redisKeyspaceDB struct {
 	DB       int
 	Keys     int
 	Expires  int
 	AvgTTLMs int64
-}
-
-type redisJobRaw struct {
-	ID      string `json:"id"`
-	Status  string `json:"status"`
-	Attempt int    `json:"attempt"`
-}
-
-type redisCritiqueJobRaw struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
 }
 
 func CollectRedis(addr, password string, selfDB int, watchDBs []int) models.RedisSnapshot {
@@ -142,27 +110,6 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 		snapshot.MemoryApprox = approx
 	}
 
-	if isOracleDB(meta.DB) || isOracleQueueDB(ctx, client) {
-		snapshot.Mode = "queue"
-		snapshot.Label = "bad-advice-oracle"
-		snapshot.Queue = collectOracleQueue(ctx, client)
-		return snapshot
-	}
-
-	if isVchatDB(meta.DB) || isVchatQueueDB(ctx, client) {
-		snapshot.Mode = "queue"
-		snapshot.Label = "vchat"
-		snapshot.Queue = collectVchatQueue(ctx, client)
-		return snapshot
-	}
-
-	if isCritiqueDB(meta.DB) || isCritiqueQueueDB(ctx, client) {
-		snapshot.Mode = "queue"
-		snapshot.Label = "art-direction-agent"
-		snapshot.Queue = collectCritiqueQueue(ctx, client)
-		return snapshot
-	}
-
 	if isMadNewsDB(meta.DB) || hasMadNewsAPOD(ctx, client) {
 		snapshot.Mode = "apod"
 		snapshot.Label = "mad-news-bot"
@@ -180,270 +127,13 @@ func collectRedisDB(ctx context.Context, client *redis.Client, meta redisKeyspac
 	return snapshot
 }
 
-func isOracleDB(db int) bool {
-	return db == oracleDB
-}
-
-func isVchatDB(db int) bool {
-	return db == vchatDB
-}
-
 func isMadNewsDB(db int) bool {
 	return db == madNewsDB
-}
-
-func isCritiqueDB(db int) bool {
-	return db == critiqueDB
-}
-
-func isCritiqueQueueDB(ctx context.Context, client *redis.Client) bool {
-	exists, err := client.Exists(ctx, critiqueQueueKey).Result()
-	if err == nil && exists > 0 {
-		return true
-	}
-	n, err := client.Eval(ctx, `
-local cursor = "0"
-repeat
-  local res = redis.call("SCAN", cursor, "MATCH", "critique:job:*", "COUNT", 1)
-  cursor = res[1]
-  if #res[2] > 0 then return 1 end
-until cursor == "0"
-return 0
-`, []string{}).Int()
-	return err == nil && n > 0
 }
 
 func hasMadNewsAPOD(ctx context.Context, client *redis.Client) bool {
 	exists, err := client.Exists(ctx, madNewsAPODKey).Result()
 	return err == nil && exists > 0
-}
-
-func isOracleQueueDB(ctx context.Context, client *redis.Client) bool {
-	queueExists, err := client.Exists(ctx, oracleQueueKey, oracleProcessingKey).Result()
-	if err != nil {
-		return false
-	}
-	return queueExists > 0
-}
-
-func isVchatQueueDB(ctx context.Context, client *redis.Client) bool {
-	queueExists, err := client.Exists(ctx, vchatQueueKey, vchatProcessingKey).Result()
-	if err != nil {
-		return false
-	}
-	return queueExists > 0
-}
-
-func collectOracleQueue(ctx context.Context, client *redis.Client) *models.RedisQueueSnapshot {
-	pending, _ := client.LLen(ctx, oracleQueueKey).Result()
-	processing, _ := client.LLen(ctx, oracleProcessingKey).Result()
-
-	pendingIDs, _ := client.LRange(ctx, oracleQueueKey, 0, -1).Result()
-	processingIDs, _ := client.LRange(ctx, oracleProcessingKey, 0, -1).Result()
-	jobIDs := uniqueStrings(append(processingIDs, pendingIDs...))
-
-	jobs := make([]models.RedisJobSummary, 0, redisMaxJobSummaries)
-	for _, id := range jobIDs {
-		if len(jobs) >= redisMaxJobSummaries {
-			break
-		}
-		if summary, ok := loadOracleJobSummary(ctx, client, id); ok {
-			jobs = append(jobs, summary)
-		} else {
-			jobs = append(jobs, models.RedisJobSummary{ID: id, Status: "unknown"})
-		}
-	}
-
-	jobCount, _ := client.Eval(ctx, `
-local n = 0
-local cursor = "0"
-repeat
-  local res = redis.call("SCAN", cursor, "MATCH", "advice:job:*", "COUNT", 100)
-  cursor = res[1]
-  n = n + #res[2]
-until cursor == "0"
-return n
-`, []string{}).Int()
-
-	queue := &models.RedisQueueSnapshot{
-		Name:       "advice",
-		Pending:    int(pending),
-		Processing: int(processing),
-		JobCount:   jobCount,
-		Jobs:       jobs,
-		PubSubChan: oracleEventsChannel,
-		Stats:      collectQueueStats(ctx, client, oracleStatsKey),
-	}
-
-	if subs, err := client.PubSubNumSub(ctx, oracleEventsChannel).Result(); err == nil {
-		if count, ok := subs[oracleEventsChannel]; ok {
-			queue.Subscribers = int(count)
-		}
-	}
-
-	return queue
-}
-
-func collectVchatQueue(ctx context.Context, client *redis.Client) *models.RedisQueueSnapshot {
-	pending, _ := client.LLen(ctx, vchatQueueKey).Result()
-	processing, _ := client.LLen(ctx, vchatProcessingKey).Result()
-
-	pendingIDs, _ := client.LRange(ctx, vchatQueueKey, 0, -1).Result()
-	processingIDs, _ := client.LRange(ctx, vchatProcessingKey, 0, -1).Result()
-	jobIDs := uniqueStrings(append(processingIDs, pendingIDs...))
-
-	jobs := make([]models.RedisJobSummary, 0, redisMaxJobSummaries)
-	for _, id := range jobIDs {
-		if len(jobs) >= redisMaxJobSummaries {
-			break
-		}
-		if summary, ok := loadVchatJobSummary(ctx, client, id); ok {
-			jobs = append(jobs, summary)
-		} else {
-			jobs = append(jobs, models.RedisJobSummary{ID: id, Status: "unknown"})
-		}
-	}
-
-	jobCount, _ := client.Eval(ctx, `
-local n = 0
-local cursor = "0"
-repeat
-  local res = redis.call("SCAN", cursor, "MATCH", "summary:job:*", "COUNT", 100)
-  cursor = res[1]
-  n = n + #res[2]
-until cursor == "0"
-return n
-`, []string{}).Int()
-
-	queue := &models.RedisQueueSnapshot{
-		Name:       "summary",
-		Pending:    int(pending),
-		Processing: int(processing),
-		JobCount:   jobCount,
-		Jobs:       jobs,
-		PubSubChan: vchatEventsChannel,
-		Stats:      collectQueueStats(ctx, client, vchatStatsKey),
-	}
-
-	if subs, err := client.PubSubNumSub(ctx, vchatEventsChannel).Result(); err == nil {
-		if count, ok := subs[vchatEventsChannel]; ok {
-			queue.Subscribers = int(count)
-		}
-	}
-
-	return queue
-}
-
-func collectCritiqueQueue(ctx context.Context, client *redis.Client) *models.RedisQueueSnapshot {
-	pending, _ := client.LLen(ctx, critiqueQueueKey).Result()
-	pendingIDs, _ := client.LRange(ctx, critiqueQueueKey, 0, -1).Result()
-
-	processing, jobCount, extraJobs := scanCritiqueJobs(ctx, client, pendingIDs)
-	jobs := make([]models.RedisJobSummary, 0, redisMaxJobSummaries)
-	for _, id := range pendingIDs {
-		if len(jobs) >= redisMaxJobSummaries {
-			break
-		}
-		if summary, ok := loadCritiqueJobSummary(ctx, client, id); ok {
-			jobs = append(jobs, summary)
-		} else {
-			jobs = append(jobs, models.RedisJobSummary{ID: id, Status: "queued"})
-		}
-	}
-	for _, summary := range extraJobs {
-		if len(jobs) >= redisMaxJobSummaries {
-			break
-		}
-		jobs = append(jobs, summary)
-	}
-
-	queue := &models.RedisQueueSnapshot{
-		Name:       "critique",
-		Pending:    int(pending),
-		Processing: processing,
-		JobCount:   jobCount,
-		Jobs:       jobs,
-		PubSubChan: critiqueEventsChannel,
-	}
-
-	if subs, err := client.PubSubNumSub(ctx, critiqueEventsChannel).Result(); err == nil {
-		if count, ok := subs[critiqueEventsChannel]; ok {
-			queue.Subscribers = int(count)
-		}
-	}
-
-	return queue
-}
-
-func scanCritiqueJobs(ctx context.Context, client *redis.Client, pendingIDs []string) (processing, total int, extras []models.RedisJobSummary) {
-	pendingSet := make(map[string]struct{}, len(pendingIDs))
-	for _, id := range pendingIDs {
-		pendingSet[id] = struct{}{}
-	}
-
-	cursor := uint64(0)
-	for {
-		keys, next, err := client.Scan(ctx, cursor, critiqueJobPrefix+"*", 100).Result()
-		if err != nil {
-			return processing, total, extras
-		}
-		for _, key := range keys {
-			total++
-			id := strings.TrimPrefix(key, critiqueJobPrefix)
-			summary, ok := loadCritiqueJobSummary(ctx, client, id)
-			if !ok {
-				continue
-			}
-			if summary.Status == "processing" {
-				processing++
-			}
-			if _, queued := pendingSet[id]; !queued && len(extras) < redisMaxJobSummaries {
-				extras = append(extras, summary)
-			}
-		}
-		cursor = next
-		if cursor == 0 {
-			break
-		}
-	}
-	return processing, total, extras
-}
-
-func loadCritiqueJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
-	raw, err := client.Get(ctx, critiqueJobPrefix+id).Bytes()
-	if err != nil {
-		return models.RedisJobSummary{}, false
-	}
-	var job redisCritiqueJobRaw
-	if err := json.Unmarshal(raw, &job); err != nil {
-		return models.RedisJobSummary{ID: id, Status: "unknown"}, true
-	}
-	if job.ID == "" {
-		job.ID = id
-	}
-	return models.RedisJobSummary{ID: job.ID, Status: job.Status}, true
-}
-
-func collectOracleStats(ctx context.Context, client *redis.Client) *models.RedisOracleStats {
-	return collectQueueStats(ctx, client, oracleStatsKey)
-}
-
-func collectQueueStats(ctx context.Context, client *redis.Client, key string) *models.RedisOracleStats {
-	values, err := client.HGetAll(ctx, key).Result()
-	if err != nil || len(values) == 0 {
-		return nil
-	}
-	return &models.RedisOracleStats{
-		Enqueued:        parseRedisInt64(values["enqueued"]),
-		Done:            parseRedisInt64(values["done"]),
-		Failed:          parseRedisInt64(values["failed"]),
-		LastEnqueuedAt:  values["last_enqueued_at"],
-		LastDoneAt:      values["last_done_at"],
-		LastFailedAt:    values["last_failed_at"],
-		LastJobID:       values["last_job_id"],
-		LastDoneJobID:   values["last_done_job_id"],
-		LastFailedJobID: values["last_failed_job_id"],
-	}
 }
 
 func collectMadNewsAPOD(ctx context.Context, client *redis.Client) *models.RedisAPODSnapshot {
@@ -460,46 +150,6 @@ func collectMadNewsAPOD(ctx context.Context, client *redis.Client) *models.Redis
 		snapshot.TTLSeconds = int64(ttl.Seconds())
 	}
 	return snapshot
-}
-
-func loadOracleJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
-	raw, err := client.Get(ctx, oracleJobPrefix+id).Bytes()
-	if err != nil {
-		return models.RedisJobSummary{}, false
-	}
-
-	var job redisJobRaw
-	if err := json.Unmarshal(raw, &job); err != nil {
-		return models.RedisJobSummary{ID: id, Status: "unknown"}, true
-	}
-	if job.ID == "" {
-		job.ID = id
-	}
-	return models.RedisJobSummary{
-		ID:      job.ID,
-		Status:  job.Status,
-		Attempt: job.Attempt,
-	}, true
-}
-
-func loadVchatJobSummary(ctx context.Context, client *redis.Client, id string) (models.RedisJobSummary, bool) {
-	raw, err := client.Get(ctx, vchatJobPrefix+id).Bytes()
-	if err != nil {
-		return models.RedisJobSummary{}, false
-	}
-
-	var job redisJobRaw
-	if err := json.Unmarshal(raw, &job); err != nil {
-		return models.RedisJobSummary{ID: id, Status: "unknown"}, true
-	}
-	if job.ID == "" {
-		job.ID = id
-	}
-	return models.RedisJobSummary{
-		ID:      job.ID,
-		Status:  job.Status,
-		Attempt: job.Attempt,
-	}, true
 }
 
 func collectRedisHighlights(ctx context.Context, client *redis.Client, selfDB, db int) []string {
@@ -583,7 +233,7 @@ func mergeRedisDBs(keyspace, probed []redisKeyspaceDB, watchDBs []int) []redisKe
 
 func watchedDBSet(watchDBs []int) map[int]bool {
 	if len(watchDBs) == 0 {
-		return map[int]bool{0: true, 1: true, 2: true, 3: true, 4: true, 5: true}
+		return map[int]bool{0: true, 4: true}
 	}
 	out := make(map[int]bool, len(watchDBs))
 	for _, db := range watchDBs {
@@ -677,20 +327,4 @@ func parseRedisInt64(value string) int64 {
 func parseRedisUint(value string) uint64 {
 	n, _ := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
 	return n
-}
-
-func uniqueStrings(items []string) []string {
-	seen := make(map[string]struct{}, len(items))
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if item == "" {
-			continue
-		}
-		if _, ok := seen[item]; ok {
-			continue
-		}
-		seen[item] = struct{}{}
-		out = append(out, item)
-	}
-	return out
 }

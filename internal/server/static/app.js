@@ -521,127 +521,6 @@ function renderSSH(ssh) {
   `).join("") || `<tr><td colspan="4">No recent failures</td></tr>`;
 }
 
-function formatRelativeTime(iso) {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function shortId(id) {
-  if (!id) return "—";
-  const value = String(id);
-  return value.length > 12 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value;
-}
-
-function renderOracleStats(stats) {
-  if (!stats) {
-    return `
-      <div class="redis-section">
-        <div class="redis-section-title">Lifetime</div>
-        <div class="service-desc">No lifetime counters yet. Active job keys expire after ~60m. Redeploy the service to start tracking totals.</div>
-      </div>
-    `;
-  }
-
-  const enqueued = Number(stats.enqueued || 0);
-  const done = Number(stats.done || 0);
-  const failed = Number(stats.failed || 0);
-  const activity = [
-    ["Enqueued", stats.lastEnqueuedAt, stats.lastJobId],
-    ["Done", stats.lastDoneAt, stats.lastDoneJobId],
-    ["Failed", stats.lastFailedAt, stats.lastFailedJobId],
-  ].filter(([, time]) => time);
-
-  return `
-    <div class="redis-section">
-      <div class="redis-section-title">Lifetime</div>
-      <div class="redis-stats-grid">
-        <div class="redis-stat-card"><span>Enqueued</span><strong>${enqueued.toLocaleString()}</strong></div>
-        <div class="redis-stat-card ok"><span>Done</span><strong>${done.toLocaleString()}</strong></div>
-        <div class="redis-stat-card bad"><span>Failed</span><strong>${failed.toLocaleString()}</strong></div>
-      </div>
-      ${activity.length ? `
-        <div class="redis-activity">
-          ${activity.map(([label, time, jobId]) => `
-            <div class="redis-activity-row">
-              <span class="redis-activity-label">${label}</span>
-              <span class="mono">${formatRelativeTime(time)}</span>
-              ${jobId ? `<span class="mono redis-activity-job" title="${jobId}">${shortId(jobId)}</span>` : ""}
-            </div>
-          `).join("")}
-        </div>
-      ` : ""}
-    </div>
-  `;
-}
-
-function renderQueueJobs(jobs) {
-  if (!jobs || !jobs.length) {
-    return `<div class="service-desc">No active jobs</div>`;
-  }
-
-  return `
-    <table class="redis-jobs-table">
-      <thead>
-        <tr>
-          <th>Job</th>
-          <th>Status</th>
-          <th>Attempt</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${jobs.map((job) => `
-          <tr>
-            <td class="mono" title="${job.id}">${shortId(job.id)}</td>
-            <td><span class="pill ${redisJobStatusClass(job.status)}">${job.status || "unknown"}</span></td>
-            <td>${job.attempt ? `#${job.attempt}` : "—"}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-function renderQueueCard(db) {
-  const queue = db.queue;
-  const title = db.label ? `db ${db.db} · ${db.label}` : `db ${db.db}`;
-  const memory = db.memoryBytes ? `${formatBytes(db.memoryBytes)}${db.memoryApprox ? "+" : ""}` : "0 B";
-  const meta = `${db.keys} keys · ${memory}${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
-  const showStats = queue.name === "advice" || queue.name === "summary";
-
-  return `
-    <div class="redis-db-card">
-      <div class="redis-db-header">
-        <div>
-          <div class="redis-db-title">${title}</div>
-          <div class="redis-db-meta">${meta} · ${queue.name || "queue"}</div>
-        </div>
-        <span class="pill warn">queue</span>
-      </div>
-      <div class="redis-queue-grid">
-        <div class="redis-queue-stat"><span>Pending</span><strong>${queue.pending || 0}</strong></div>
-        <div class="redis-queue-stat"><span>Processing</span><strong>${queue.processing || 0}</strong></div>
-        <div class="redis-queue-stat"><span>Job keys</span><strong>${queue.jobCount || 0}</strong></div>
-        <div class="redis-queue-stat"><span>Subscribers</span><strong>${queue.subscribers || 0}</strong></div>
-      </div>
-      <div class="redis-section">
-        <div class="redis-section-title">Jobs</div>
-        ${renderQueueJobs(queue.jobs)}
-      </div>
-      ${showStats ? renderOracleStats(queue.stats) : ""}
-      ${queue.pubSubChannel ? `<div class="service-desc">channel: <span class="mono">${queue.pubSubChannel}</span></div>` : ""}
-    </div>
-  `;
-}
-
 function renderAPOD(apod) {
   if (!apod) {
     return `<div class="service-desc">No APOD cache configured.</div>`;
@@ -655,7 +534,7 @@ function renderAPOD(apod) {
     `;
   }
 
-  const ttl = apod.ttlSeconds ? formatUptime(apod.ttlSeconds) : "—";
+  const ttl = apod.ttlSeconds ? formatUptime(apod.ttlSeconds) : "-";
   return `
     <div class="redis-apod-banner alive">
       <span class="redis-apod-key mono">${apod.cacheKey || "nasa-apod"}</span>
@@ -664,14 +543,6 @@ function renderAPOD(apod) {
       <span class="redis-apod-hint">NASA APOD cache (48h TTL)</span>
     </div>
   `;
-}
-
-function redisJobStatusClass(status) {
-  const value = String(status || "").toLowerCase();
-  if (["done", "completed"].includes(value)) return "ok";
-  if (["failed", "error"].includes(value)) return "bad";
-  if (["processing", "queued", "retrying"].includes(value)) return "warn";
-  return "";
 }
 
 function renderRedis(redis) {
@@ -700,10 +571,6 @@ function renderRedis(redis) {
     const title = db.label ? `db ${db.db} · ${db.label}` : `db ${db.db}`;
     const memory = db.memoryBytes ? `${formatBytes(db.memoryBytes)}${db.memoryApprox ? "+" : ""}` : "0 B";
     const meta = `${db.keys} keys · ${memory}${db.expires ? ` · ${db.expires} expiring` : ""}${db.avgTtlMs ? ` · avg TTL ${Math.round(db.avgTtlMs / 1000)}s` : ""}`;
-
-    if (db.mode === "queue" && db.queue) {
-      return renderQueueCard(db);
-    }
 
     if (db.mode === "apod") {
       return `
