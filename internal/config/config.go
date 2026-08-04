@@ -63,12 +63,10 @@ func Load() Config {
 		CollectInterval:    DefaultCollectInterval,
 		Retention:          DefaultRetention,
 		Services: []string{
-			"mongod",
 			"nginx",
 			"docker",
 			"dplo",
 			"openvpn@server",
-			"redis-server",
 			"fail2ban",
 		},
 	}
