@@ -53,7 +53,7 @@ func (c *Collector) collect() {
 	services := CollectServices(c.cfg.Services)
 	mongo := CollectMongo(c.cfg.MongoURI)
 	dplo := CollectDplo(c.cfg.DploDataDir, c.cfg.DploHealthURL)
-	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNServiceName)
+	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNContainerName)
 	ssh := CollectSSH()
 	fail2ban := CollectFail2ban()
 	redisSnap := CollectRedis(c.cfg.RedisAddr, c.cfg.RedisPassword, c.cfg.RedisDB, c.cfg.RedisWatchDBs)

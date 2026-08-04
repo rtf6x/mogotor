@@ -16,6 +16,8 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("MOGOTOR_RABBIT_URL", "")
 	t.Setenv("MOGOTOR_RABBIT_USER", "")
 	t.Setenv("MOGOTOR_RABBIT_PASSWORD", "")
+	t.Setenv("MOGOTOR_OPENVPN_CONTAINER", "")
+	t.Setenv("MOGOTOR_OPENVPN_STATUS_PATH", "")
 
 	cfg := Load()
 	if cfg.Addr != ":8188" {
@@ -42,13 +44,24 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.CollectInterval != time.Minute {
 		t.Fatalf("expected 1m interval, got %s", cfg.CollectInterval)
 	}
-	if len(cfg.Services) != 5 {
-		t.Fatalf("expected 5 default services, got %d", len(cfg.Services))
+	if cfg.OpenVPNContainerName != DefaultOpenVPNContainerName {
+		t.Fatalf("expected default openvpn container %s, got %s", DefaultOpenVPNContainerName, cfg.OpenVPNContainerName)
+	}
+	if len(cfg.Services) != 4 {
+		t.Fatalf("expected 4 default services, got %d", len(cfg.Services))
 	}
 	for _, name := range cfg.Services {
-		if name == "mongod" || name == "redis-server" {
+		if name == "mongod" || name == "redis-server" || name == "openvpn@server" {
 			t.Fatalf("host %s moved to Docker; should not be in systemd services", name)
 		}
+	}
+}
+
+func TestLoadOpenVPNContainerFromEnv(t *testing.T) {
+	t.Setenv("MOGOTOR_OPENVPN_CONTAINER", "vpn")
+	cfg := Load()
+	if cfg.OpenVPNContainerName != "vpn" {
+		t.Fatalf("expected openvpn container vpn, got %s", cfg.OpenVPNContainerName)
 	}
 }
 

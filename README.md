@@ -19,7 +19,7 @@ History is stored in Redis (database 4 by default; on ci.rootfox.cc Redis runs i
 
 RabbitMQ Management API (optional panel): `MOGOTOR_RABBIT_URL` (default `http://127.0.0.1:15672/rabbit`), `MOGOTOR_RABBIT_USER` (default `rootfox`), `MOGOTOR_RABBIT_PASSWORD`.
 
-Systemd service list watches host units only (nginx, docker, dplo, openvpn, fail2ban). Redis and MongoDB are monitored via their own panels / Docker, not as `redis-server` / `mongod` units.
+Systemd service list watches host units only (nginx, docker, dplo, fail2ban). Redis, MongoDB, and OpenVPN are monitored via their own panels / Docker, not as host systemd units.
 
 ## Deploy
 

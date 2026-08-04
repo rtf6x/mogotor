@@ -1,6 +1,11 @@
 package collector
 
-import "testing"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestParseOpenVPNStatus(t *testing.T) {
 	input := `OpenVPN CLIENT LIST
@@ -46,4 +51,101 @@ END
 	if len(clients) != 0 {
 		t.Fatalf("expected no clients, got %v", clients)
 	}
+}
+
+func TestOpenVPNStateFromDockerStatus(t *testing.T) {
+	active, sub := openVPNStateFromDockerStatus("running")
+	if active != "active" || sub != "running" {
+		t.Fatalf("running: got %s / %s", active, sub)
+	}
+
+	active, sub = openVPNStateFromDockerStatus("exited")
+	if active != "inactive" || sub != "exited" {
+		t.Fatalf("exited: got %s / %s", active, sub)
+	}
+
+	active, sub = openVPNStateFromDockerStatus("")
+	if active != "inactive" || sub != "unknown" {
+		t.Fatalf("empty: got %s / %s", active, sub)
+	}
+}
+
+func TestCollectOpenVPNRunningWithClients(t *testing.T) {
+	path := writeOpenVPNStatusFile(t, `OpenVPN CLIENT LIST
+Updated,2026-08-04 18:00:00
+Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since
+rtf6x,203.0.113.10:1,1,1,2026-08-04 17:00:00
+ROUTING TABLE
+Virtual Address,Common Name,Real Address,Last Ref
+GLOBAL STATS
+END
+`)
+
+	snap := collectOpenVPN(path, "openvpn", func(string) (string, error) {
+		return "running", nil
+	})
+	if snap.ServiceName != "openvpn" {
+		t.Fatalf("service name: %q", snap.ServiceName)
+	}
+	if snap.Active != "active" || snap.SubState != "running" {
+		t.Fatalf("state: %s / %s", snap.Active, snap.SubState)
+	}
+	if !snap.Available || len(snap.Clients) != 1 || snap.Clients[0] != "rtf6x" {
+		t.Fatalf("clients: available=%v %v", snap.Available, snap.Clients)
+	}
+}
+
+func TestCollectOpenVPNStoppedContainer(t *testing.T) {
+	path := writeOpenVPNStatusFile(t, `OpenVPN CLIENT LIST
+Updated,2026-08-04 18:00:00
+Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since
+ROUTING TABLE
+Virtual Address,Common Name,Real Address,Last Ref
+GLOBAL STATS
+END
+`)
+
+	snap := collectOpenVPN(path, "openvpn", func(string) (string, error) {
+		return "exited", nil
+	})
+	if snap.Active != "inactive" || snap.SubState != "exited" {
+		t.Fatalf("state: %s / %s", snap.Active, snap.SubState)
+	}
+	if !snap.Available {
+		t.Fatalf("status file should still be available")
+	}
+}
+
+func TestCollectOpenVPNMissingContainer(t *testing.T) {
+	path := writeOpenVPNStatusFile(t, `OpenVPN CLIENT LIST
+Updated,2026-08-04 18:00:00
+Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since
+ROUTING TABLE
+Virtual Address,Common Name,Real Address,Last Ref
+GLOBAL STATS
+END
+`)
+
+	snap := collectOpenVPN(path, "openvpn", func(string) (string, error) {
+		return "", fmt.Errorf("No such container: openvpn")
+	})
+	if snap.Active != "inactive" {
+		t.Fatalf("expected inactive, got %s", snap.Active)
+	}
+	if snap.Error == "" {
+		t.Fatal("expected inspect error")
+	}
+	if !snap.Available {
+		t.Fatalf("status file should still be available, err=%s", snap.Error)
+	}
+}
+
+func writeOpenVPNStatusFile(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "openvpn-status.log")
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }

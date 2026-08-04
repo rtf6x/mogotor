@@ -10,17 +10,24 @@ import (
 	"github.com/rtf6x/mogotor/internal/models"
 )
 
-func CollectOpenVPN(statusPath, serviceName string) models.OpenVPNSnapshot {
+func CollectOpenVPN(statusPath, containerName string) models.OpenVPNSnapshot {
+	return collectOpenVPN(statusPath, containerName, inspectOpenVPNContainer)
+}
+
+func collectOpenVPN(statusPath, containerName string, inspect func(string) (string, error)) models.OpenVPNSnapshot {
 	snapshot := models.OpenVPNSnapshot{
-		ServiceName: serviceName,
+		ServiceName: containerName,
+		Clients:     []string{},
 	}
 
-	if serviceName != "" {
-		service := collectService(serviceName)
-		snapshot.Active = service.Active
-		snapshot.SubState = service.SubState
-		if service.Error != "" {
-			snapshot.Error = service.Error
+	if containerName != "" {
+		status, err := inspect(containerName)
+		snapshot.Active, snapshot.SubState = openVPNStateFromDockerStatus(status)
+		if err != nil {
+			snapshot.Error = err.Error()
+			if snapshot.Active == "" {
+				snapshot.Active = "inactive"
+			}
 		}
 	}
 
@@ -44,6 +51,39 @@ func CollectOpenVPN(statusPath, serviceName string) models.OpenVPNSnapshot {
 	snapshot.UpdatedAt = updatedAt
 	snapshot.Clients = clients
 	return snapshot
+}
+
+func openVPNStateFromDockerStatus(status string) (active, subState string) {
+	status = strings.TrimSpace(status)
+	if status == "" {
+		return "inactive", "unknown"
+	}
+	if status == "running" {
+		return "active", status
+	}
+	return "inactive", status
+}
+
+func inspectOpenVPNContainer(name string) (string, error) {
+	status, err := dockerContainerStatus("docker", name)
+	if err != nil {
+		status, err = dockerContainerStatus("sudo docker", name)
+	}
+	return status, err
+}
+
+func dockerContainerStatus(command, name string) (string, error) {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return "", fmt.Errorf("empty docker command")
+	}
+	args := append(parts[1:], "inspect", "--format", "{{.State.Status}}", name)
+	cmd := exec.Command(parts[0], args...)
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("%s", trimExecError(err))
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func readOpenVPNStatus(path string) ([]byte, error) {

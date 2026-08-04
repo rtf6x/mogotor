@@ -17,56 +17,55 @@ const (
 	DefaultRedisWatchDBs      = "0,4"
 	DefaultDploDataDir        = "/var/lib/dplo"
 	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
-	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"
-	DefaultOpenVPNServiceName = "openvpn@server"
-	DefaultRabbitURL          = "http://127.0.0.1:15672/rabbit"
-	DefaultRabbitUser         = "rootfox"
+	DefaultOpenVPNStatusPath    = "/etc/openvpn/openvpn-status.log"
+	DefaultOpenVPNContainerName = "openvpn"
+	DefaultRabbitURL            = "http://127.0.0.1:15672/rabbit"
+	DefaultRabbitUser           = "rootfox"
 )
 
 type Config struct {
-	Addr               string
-	DataDir            string
-	MongoURI           string
-	RedisAddr          string
-	RedisPassword      string
-	RedisDB            int
-	RedisWatchDBs      []int
-	RabbitURL          string
-	RabbitUser         string
-	RabbitPassword     string
-	DploDataDir        string
-	DploHealthURL      string
-	OpenVPNStatusPath  string
-	OpenVPNServiceName string
-	CollectInterval    time.Duration
-	Retention          time.Duration
-	Services           []string
+	Addr                 string
+	DataDir              string
+	MongoURI             string
+	RedisAddr            string
+	RedisPassword        string
+	RedisDB              int
+	RedisWatchDBs        []int
+	RabbitURL            string
+	RabbitUser           string
+	RabbitPassword       string
+	DploDataDir          string
+	DploHealthURL        string
+	OpenVPNStatusPath    string
+	OpenVPNContainerName string
+	CollectInterval      time.Duration
+	Retention            time.Duration
+	Services             []string
 }
 
 func Load() Config {
 	dataDir := envOr("MOGOTOR_DATA_DIR", defaultDataDir())
 	return Config{
-		Addr:               envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
-		DataDir:            dataDir,
-		MongoURI:           resolveMongoURI(dataDir),
-		RedisAddr:          resolveRedisAddr(),
-		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
-		RedisDB:            envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
-		RedisWatchDBs:      resolveRedisWatchDBs(),
-		RabbitURL:          envOr("MOGOTOR_RABBIT_URL", DefaultRabbitURL),
-		RabbitUser:         envOr("MOGOTOR_RABBIT_USER", DefaultRabbitUser),
-		RabbitPassword:     os.Getenv("MOGOTOR_RABBIT_PASSWORD"),
-		DploDataDir:        envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
-		DploHealthURL:      envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
-		OpenVPNStatusPath:  envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
-		OpenVPNServiceName: envOr("MOGOTOR_OPENVPN_SERVICE", DefaultOpenVPNServiceName),
-		CollectInterval:    DefaultCollectInterval,
-		Retention:          DefaultRetention,
+		Addr:                 envOr("MOGOTOR_ADDR", ":"+strconv.Itoa(DefaultPort)),
+		DataDir:              dataDir,
+		MongoURI:             resolveMongoURI(dataDir),
+		RedisAddr:            resolveRedisAddr(),
+		RedisPassword:        os.Getenv("REDIS_PASSWORD"),
+		RedisDB:              envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
+		RedisWatchDBs:        resolveRedisWatchDBs(),
+		RabbitURL:            envOr("MOGOTOR_RABBIT_URL", DefaultRabbitURL),
+		RabbitUser:           envOr("MOGOTOR_RABBIT_USER", DefaultRabbitUser),
+		RabbitPassword:       os.Getenv("MOGOTOR_RABBIT_PASSWORD"),
+		DploDataDir:          envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
+		DploHealthURL:        envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
+		OpenVPNStatusPath:    envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
+		OpenVPNContainerName: envOr("MOGOTOR_OPENVPN_CONTAINER", DefaultOpenVPNContainerName),
+		CollectInterval:      DefaultCollectInterval,
+		Retention:            DefaultRetention,
 		Services: []string{
 			"nginx",
 			"docker",
 			"dplo",
-			"openvpn@server",
 			"fail2ban",
 		},
 	}
