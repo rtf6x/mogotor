@@ -148,53 +148,23 @@ type Fail2banSnapshot struct {
 	Jails     []Fail2banJail `json:"jails"`
 }
 
-type RedisJobSummary struct {
-	ID      string `json:"id"`
-	Status  string `json:"status"`
-	Attempt int    `json:"attempt,omitempty"`
-}
-
 type RedisAPODSnapshot struct {
 	CacheKey   string `json:"cacheKey"`
 	Cached     bool   `json:"cached"`
 	TTLSeconds int64  `json:"ttlSeconds,omitempty"`
 }
 
-type RedisOracleStats struct {
-	Enqueued        int64  `json:"enqueued"`
-	Done            int64  `json:"done"`
-	Failed          int64  `json:"failed"`
-	LastEnqueuedAt  string `json:"lastEnqueuedAt,omitempty"`
-	LastDoneAt      string `json:"lastDoneAt,omitempty"`
-	LastFailedAt    string `json:"lastFailedAt,omitempty"`
-	LastJobID       string `json:"lastJobId,omitempty"`
-	LastDoneJobID   string `json:"lastDoneJobId,omitempty"`
-	LastFailedJobID string `json:"lastFailedJobId,omitempty"`
-}
-
-type RedisQueueSnapshot struct {
-	Name        string            `json:"name"`
-	Pending     int               `json:"pending"`
-	Processing  int               `json:"processing"`
-	JobCount    int               `json:"jobCount"`
-	Jobs        []RedisJobSummary `json:"jobs,omitempty"`
-	PubSubChan  string            `json:"pubSubChannel,omitempty"`
-	Subscribers int               `json:"subscribers,omitempty"`
-	Stats       *RedisOracleStats `json:"stats,omitempty"`
-}
-
 type RedisDBSnapshot struct {
-	DB         int                 `json:"db"`
-	Keys       int                 `json:"keys"`
-	Expires        int                 `json:"expires,omitempty"`
-	AvgTTLMs       int64               `json:"avgTtlMs,omitempty"`
-	MemoryBytes    uint64              `json:"memoryBytes,omitempty"`
-	MemoryApprox   bool                `json:"memoryApprox,omitempty"`
-	Mode           string              `json:"mode"`
-	Label      string              `json:"label,omitempty"`
-	Queue      *RedisQueueSnapshot `json:"queue,omitempty"`
-	APOD       *RedisAPODSnapshot  `json:"apod,omitempty"`
-	Highlights []string            `json:"highlights,omitempty"`
+	DB           int                `json:"db"`
+	Keys         int                `json:"keys"`
+	Expires      int                `json:"expires,omitempty"`
+	AvgTTLMs     int64              `json:"avgTtlMs,omitempty"`
+	MemoryBytes  uint64             `json:"memoryBytes,omitempty"`
+	MemoryApprox bool               `json:"memoryApprox,omitempty"`
+	Mode         string             `json:"mode"`
+	Label        string             `json:"label,omitempty"`
+	APOD         *RedisAPODSnapshot `json:"apod,omitempty"`
+	Highlights   []string           `json:"highlights,omitempty"`
 }
 
 type RedisSnapshot struct {
@@ -235,23 +205,23 @@ type RabbitQueueSnapshot struct {
 }
 
 type RabbitSnapshot struct {
-	Available        bool                  `json:"available"`
-	Error            string                `json:"error,omitempty"`
-	Version          string                `json:"version,omitempty"`
-	ErlangVersion    string                `json:"erlangVersion,omitempty"`
-	ClusterName      string                `json:"clusterName,omitempty"`
-	Node             string                `json:"node,omitempty"`
-	Connections      int                   `json:"connections"`
-	Channels         int                   `json:"channels"`
-	Consumers        int                   `json:"consumers"`
-	QueueCount       int                   `json:"queueCount"`
-	Exchanges        int                   `json:"exchanges"`
-	MessagesReady    int                   `json:"messagesReady"`
-	MessagesUnacked  int                   `json:"messagesUnacked"`
-	MessagesTotal    int                   `json:"messagesTotal"`
-	NodeInfo         *RabbitNodeInfo       `json:"nodeInfo,omitempty"`
-	Listeners        []RabbitListener      `json:"listeners"`
-	Queues           []RabbitQueueSnapshot `json:"queues"`
+	Available       bool                  `json:"available"`
+	Error           string                `json:"error,omitempty"`
+	Version         string                `json:"version,omitempty"`
+	ErlangVersion   string                `json:"erlangVersion,omitempty"`
+	ClusterName     string                `json:"clusterName,omitempty"`
+	Node            string                `json:"node,omitempty"`
+	Connections     int                   `json:"connections"`
+	Channels        int                   `json:"channels"`
+	Consumers       int                   `json:"consumers"`
+	QueueCount      int                   `json:"queueCount"`
+	Exchanges       int                   `json:"exchanges"`
+	MessagesReady   int                   `json:"messagesReady"`
+	MessagesUnacked int                   `json:"messagesUnacked"`
+	MessagesTotal   int                   `json:"messagesTotal"`
+	NodeInfo        *RabbitNodeInfo       `json:"nodeInfo,omitempty"`
+	Listeners       []RabbitListener      `json:"listeners"`
+	Queues          []RabbitQueueSnapshot `json:"queues"`
 }
 
 type OpenVPNSnapshot struct {
