@@ -207,6 +207,53 @@ type RedisSnapshot struct {
 	Databases        []RedisDBSnapshot `json:"databases"`
 }
 
+type RabbitListener struct {
+	Node      string `json:"node,omitempty"`
+	Protocol  string `json:"protocol"`
+	IPAddress string `json:"ipAddress,omitempty"`
+	Port      int    `json:"port"`
+}
+
+type RabbitNodeInfo struct {
+	Name         string `json:"name"`
+	Running      bool   `json:"running"`
+	MemUsedBytes uint64 `json:"memUsedBytes,omitempty"`
+	UptimeMs     int64  `json:"uptimeMs,omitempty"`
+	Type         string `json:"type,omitempty"`
+}
+
+type RabbitQueueSnapshot struct {
+	Name            string  `json:"name"`
+	Vhost           string  `json:"vhost"`
+	State           string  `json:"state,omitempty"`
+	Messages        int     `json:"messages"`
+	MessagesReady   int     `json:"messagesReady"`
+	MessagesUnacked int     `json:"messagesUnacked"`
+	Consumers       int     `json:"consumers"`
+	PublishRate     float64 `json:"publishRate,omitempty"`
+	DeliverRate     float64 `json:"deliverRate,omitempty"`
+}
+
+type RabbitSnapshot struct {
+	Available        bool                  `json:"available"`
+	Error            string                `json:"error,omitempty"`
+	Version          string                `json:"version,omitempty"`
+	ErlangVersion    string                `json:"erlangVersion,omitempty"`
+	ClusterName      string                `json:"clusterName,omitempty"`
+	Node             string                `json:"node,omitempty"`
+	Connections      int                   `json:"connections"`
+	Channels         int                   `json:"channels"`
+	Consumers        int                   `json:"consumers"`
+	QueueCount       int                   `json:"queueCount"`
+	Exchanges        int                   `json:"exchanges"`
+	MessagesReady    int                   `json:"messagesReady"`
+	MessagesUnacked  int                   `json:"messagesUnacked"`
+	MessagesTotal    int                   `json:"messagesTotal"`
+	NodeInfo         *RabbitNodeInfo       `json:"nodeInfo,omitempty"`
+	Listeners        []RabbitListener      `json:"listeners"`
+	Queues           []RabbitQueueSnapshot `json:"queues"`
+}
+
 type OpenVPNSnapshot struct {
 	Available   bool     `json:"available"`
 	Error       string   `json:"error,omitempty"`
@@ -230,6 +277,7 @@ type Snapshot struct {
 	SSH       SSHSnapshot      `json:"ssh"`
 	Fail2ban  Fail2banSnapshot `json:"fail2ban"`
 	Redis     RedisSnapshot    `json:"redis"`
+	Rabbit    RabbitSnapshot   `json:"rabbit"`
 }
 
 type HistoryResponse struct {

@@ -12,6 +12,9 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("REDIS_ADDR", "")
 	t.Setenv("REDIS_PASSWORD", "")
 	t.Setenv("MOGOTOR_REDIS_DB", "")
+	t.Setenv("MOGOTOR_RABBIT_URL", "")
+	t.Setenv("MOGOTOR_RABBIT_USER", "")
+	t.Setenv("MOGOTOR_RABBIT_PASSWORD", "")
 
 	cfg := Load()
 	if cfg.Addr != ":8188" {
@@ -23,11 +26,34 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RedisDB != DefaultRedisDB {
 		t.Fatalf("expected default redis db %d, got %d", DefaultRedisDB, cfg.RedisDB)
 	}
+	if cfg.RabbitURL != DefaultRabbitURL {
+		t.Fatalf("expected default rabbit url %s, got %s", DefaultRabbitURL, cfg.RabbitURL)
+	}
+	if cfg.RabbitUser != DefaultRabbitUser {
+		t.Fatalf("expected default rabbit user %s, got %s", DefaultRabbitUser, cfg.RabbitUser)
+	}
+	if cfg.RabbitPassword != "" {
+		t.Fatalf("expected empty rabbit password by default")
+	}
 	if cfg.CollectInterval != time.Minute {
 		t.Fatalf("expected 1m interval, got %s", cfg.CollectInterval)
 	}
 	if len(cfg.Services) != 7 {
 		t.Fatalf("expected 7 default services, got %d", len(cfg.Services))
+	}
+}
+
+func TestLoadRabbitFromEnv(t *testing.T) {
+	t.Setenv("MOGOTOR_RABBIT_URL", "http://127.0.0.1:15672/rabbit")
+	t.Setenv("MOGOTOR_RABBIT_USER", "monitor")
+	t.Setenv("MOGOTOR_RABBIT_PASSWORD", "pw")
+
+	cfg := Load()
+	if cfg.RabbitURL != "http://127.0.0.1:15672/rabbit" {
+		t.Fatalf("rabbit url: got %s", cfg.RabbitURL)
+	}
+	if cfg.RabbitUser != "monitor" || cfg.RabbitPassword != "pw" {
+		t.Fatalf("rabbit auth: user=%q pass=%q", cfg.RabbitUser, cfg.RabbitPassword)
 	}
 }
 

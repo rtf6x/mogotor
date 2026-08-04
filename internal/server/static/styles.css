@@ -283,7 +283,7 @@ th {
   color: var(--bad);
 }
 
-.service-list, .mongo-panel, .redis-panel {
+.service-list, .mongo-panel, .redis-panel, .rabbit-panel {
   display: grid;
   gap: 0.75rem;
 }

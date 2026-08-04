@@ -17,6 +17,8 @@ Listen address defaults to `:8188`. Override with `MOGOTOR_ADDR`, for example `:
 
 History is stored in Redis (database 4 by default). Set `MOGOTOR_REDIS_ADDR` or `REDIS_ADDR` (default `127.0.0.1:63719`), `REDIS_PASSWORD`, and optionally `MOGOTOR_REDIS_DB`.
 
+RabbitMQ Management API (optional panel): `MOGOTOR_RABBIT_URL` (default `http://127.0.0.1:15672/rabbit`), `MOGOTOR_RABBIT_USER` (default `rootfox`), `MOGOTOR_RABBIT_PASSWORD`.
+
 ## Deploy
 
 ```bash

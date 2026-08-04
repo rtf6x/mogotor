@@ -57,6 +57,7 @@ func (c *Collector) collect() {
 	ssh := CollectSSH()
 	fail2ban := CollectFail2ban()
 	redisSnap := CollectRedis(c.cfg.RedisAddr, c.cfg.RedisPassword, c.cfg.RedisDB, c.cfg.RedisWatchDBs)
+	rabbitSnap := CollectRabbit(c.cfg.RabbitURL, c.cfg.RabbitUser, c.cfg.RabbitPassword)
 
 	snapshot := models.Snapshot{
 		Timestamp: now,
@@ -71,6 +72,7 @@ func (c *Collector) collect() {
 		SSH:       ssh,
 		Fail2ban:  fail2ban,
 		Redis:     redisSnap,
+		Rabbit:    rabbitSnap,
 	}
 
 	c.history.Add(system)

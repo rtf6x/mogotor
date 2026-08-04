@@ -738,6 +738,128 @@ function renderRedis(redis) {
   }).join("");
 }
 
+function formatMsgRate(rate) {
+  const n = Number(rate) || 0;
+  if (n === 0) return "0/s";
+  if (n < 0.01) return "<0.01/s";
+  return `${n.toFixed(n < 10 ? 2 : 1)}/s`;
+}
+
+function renderRabbit(rabbit) {
+  const status = document.getElementById("rabbit-status");
+  const panel = document.getElementById("rabbit-panel");
+
+  if (!rabbit || !rabbit.available) {
+    status.textContent = rabbit?.error || "RabbitMQ unavailable";
+    status.className = "status-line error";
+    panel.innerHTML = "";
+    return;
+  }
+
+  const node = rabbit.nodeInfo;
+  const nodeBit = node
+    ? `${node.running ? "running" : "down"} · ${formatBytes(node.memUsedBytes || 0)} · up ${formatUptime(Math.floor((node.uptimeMs || 0) / 1000))}`
+    : (rabbit.node || "node unknown");
+  const erlang = rabbit.erlangVersion ? ` · Erlang ${rabbit.erlangVersion}` : "";
+  status.textContent = `${rabbit.version || "rabbitmq"}${erlang} · ${rabbit.clusterName || rabbit.node || "cluster"} · ${nodeBit}`;
+  status.className = node && !node.running ? "status-line error" : "status-line";
+
+  const listeners = rabbit.listeners || [];
+  const queues = rabbit.queues || [];
+
+  const overviewGrid = `
+    <div class="redis-queue-grid">
+      <div class="redis-queue-stat"><span>Connections</span><strong>${rabbit.connections || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Channels</span><strong>${rabbit.channels || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Consumers</span><strong>${rabbit.consumers || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Queues</span><strong>${rabbit.queueCount || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Exchanges</span><strong>${rabbit.exchanges || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Ready</span><strong>${rabbit.messagesReady || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Unacked</span><strong>${rabbit.messagesUnacked || 0}</strong></div>
+      <div class="redis-queue-stat"><span>Total msgs</span><strong>${rabbit.messagesTotal || 0}</strong></div>
+    </div>
+  `;
+
+  const listenersBlock = `
+    <div class="redis-section">
+      <div class="redis-section-title">Listeners</div>
+      ${listeners.length ? `
+        <table class="redis-jobs-table">
+          <thead>
+            <tr>
+              <th>Protocol</th>
+              <th>Bind</th>
+              <th>Port</th>
+              <th>Node</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${listeners.map((l) => `
+              <tr>
+                <td><span class="pill ${l.protocol === "amqp" ? "ok" : ""}">${l.protocol || "—"}</span></td>
+                <td class="mono">${l.ipAddress || "—"}</td>
+                <td class="mono">${l.port ?? "—"}</td>
+                <td class="mono">${l.node || "—"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="service-desc">No listeners</div>`}
+    </div>
+  `;
+
+  const queuesBlock = `
+    <div class="redis-section">
+      <div class="redis-section-title">Queues</div>
+      ${queues.length ? `
+        <table class="redis-jobs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Vhost</th>
+              <th>State</th>
+              <th>Ready</th>
+              <th>Unacked</th>
+              <th>Consumers</th>
+              <th>Publish</th>
+              <th>Deliver</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${queues.map((q) => `
+              <tr>
+                <td class="mono">${q.name || "—"}</td>
+                <td class="mono">${q.vhost || "/"}</td>
+                <td><span class="pill ${q.state === "running" ? "ok" : "warn"}">${q.state || "—"}</span></td>
+                <td>${q.messagesReady || 0}</td>
+                <td>${q.messagesUnacked || 0}</td>
+                <td>${q.consumers || 0}</td>
+                <td>${formatMsgRate(q.publishRate)}</td>
+                <td>${formatMsgRate(q.deliverRate)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      ` : `<div class="service-desc">No queues yet</div>`}
+    </div>
+  `;
+
+  panel.innerHTML = `
+    <div class="redis-db-card">
+      <div class="redis-db-header">
+        <div>
+          <div class="redis-db-title">${rabbit.node || rabbit.clusterName || "node"}</div>
+          <div class="redis-db-meta">${node?.type || "disc"} · management UI <a class="mono" href="/rabbit/">/rabbit/</a></div>
+        </div>
+        <span class="pill ${node && node.running ? "ok" : "bad"}">${node && node.running ? "running" : "unknown"}</span>
+      </div>
+      ${overviewGrid}
+      ${listenersBlock}
+      ${queuesBlock}
+    </div>
+  `;
+}
+
 function renderFail2ban(fail2ban) {
   const status = document.getElementById("fail2ban-status");
   const body = document.querySelector("#fail2ban-table tbody");
@@ -801,6 +923,7 @@ async function refresh() {
   renderOpenVPN(snapshot.openvpn);
   renderSSH(snapshot.ssh);
   renderRedis(snapshot.redis);
+  renderRabbit(snapshot.rabbit);
   renderFail2ban(snapshot.fail2ban);
 }
 

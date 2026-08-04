@@ -19,6 +19,8 @@ const (
 	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
 	DefaultOpenVPNStatusPath  = "/etc/openvpn/openvpn-status.log"
 	DefaultOpenVPNServiceName = "openvpn@server"
+	DefaultRabbitURL          = "http://127.0.0.1:15672/rabbit"
+	DefaultRabbitUser         = "rootfox"
 )
 
 type Config struct {
@@ -29,6 +31,9 @@ type Config struct {
 	RedisPassword      string
 	RedisDB            int
 	RedisWatchDBs      []int
+	RabbitURL          string
+	RabbitUser         string
+	RabbitPassword     string
 	DploDataDir        string
 	DploHealthURL      string
 	OpenVPNStatusPath  string
@@ -48,6 +53,9 @@ func Load() Config {
 		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
 		RedisDB:            envIntOr("MOGOTOR_REDIS_DB", DefaultRedisDB),
 		RedisWatchDBs:      resolveRedisWatchDBs(),
+		RabbitURL:          envOr("MOGOTOR_RABBIT_URL", DefaultRabbitURL),
+		RabbitUser:         envOr("MOGOTOR_RABBIT_USER", DefaultRabbitUser),
+		RabbitPassword:     os.Getenv("MOGOTOR_RABBIT_PASSWORD"),
 		DploDataDir:        envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
 		DploHealthURL:      envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
 		OpenVPNStatusPath:  envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
