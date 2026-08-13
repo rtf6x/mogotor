@@ -3,23 +3,24 @@ package models
 import "time"
 
 type SystemSnapshot struct {
-	Timestamp        time.Time `json:"timestamp"`
-	CPUPercent       float64   `json:"cpuPercent"`
-	MemoryUsedBytes  uint64    `json:"memoryUsedBytes"`
-	MemoryTotalBytes uint64    `json:"memoryTotalBytes"`
-	SwapUsedBytes    uint64    `json:"swapUsedBytes"`
-	SwapTotalBytes   uint64    `json:"swapTotalBytes"`
-	DiskUsedBytes    uint64    `json:"diskUsedBytes"`
-	DiskTotalBytes   uint64    `json:"diskTotalBytes"`
-	DiskUsedPercent  float64   `json:"diskUsedPercent"`
-	NetBytesSent     uint64    `json:"netBytesSent"`
-	NetBytesRecv     uint64    `json:"netBytesRecv"`
-	NetSendBps       float64   `json:"netSendBps"`
-	NetRecvBps       float64   `json:"netRecvBps"`
-	Load1            float64   `json:"load1"`
-	Load5            float64   `json:"load5"`
-	Load15           float64   `json:"load15"`
-	UptimeSeconds    uint64    `json:"uptimeSeconds"`
+	Timestamp            time.Time `json:"timestamp"`
+	CPUPercent           float64   `json:"cpuPercent"`
+	MemoryUsedBytes      uint64    `json:"memoryUsedBytes"`
+	MemoryAvailableBytes uint64    `json:"memoryAvailableBytes,omitempty"`
+	MemoryTotalBytes     uint64    `json:"memoryTotalBytes"`
+	SwapUsedBytes        uint64    `json:"swapUsedBytes"`
+	SwapTotalBytes       uint64    `json:"swapTotalBytes"`
+	DiskUsedBytes        uint64    `json:"diskUsedBytes"`
+	DiskTotalBytes       uint64    `json:"diskTotalBytes"`
+	DiskUsedPercent      float64   `json:"diskUsedPercent"`
+	NetBytesSent         uint64    `json:"netBytesSent"`
+	NetBytesRecv         uint64    `json:"netBytesRecv"`
+	NetSendBps           float64   `json:"netSendBps"`
+	NetRecvBps           float64   `json:"netRecvBps"`
+	Load1                float64   `json:"load1"`
+	Load5                float64   `json:"load5"`
+	Load15               float64   `json:"load15"`
+	UptimeSeconds        uint64    `json:"uptimeSeconds"`
 }
 
 type DiskUsage struct {

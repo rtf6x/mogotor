@@ -9,14 +9,14 @@ import (
 )
 
 const (
-	DefaultPort               = 8188
-	DefaultCollectInterval    = time.Minute
-	DefaultRetention          = 24 * time.Hour
-	DefaultRedisAddr          = "127.0.0.1:63719"
-	DefaultRedisDB            = 4
-	DefaultRedisWatchDBs      = "0,4"
-	DefaultDploDataDir        = "/var/lib/dplo"
-	DefaultDploHealthURL      = "http://127.0.0.1:8090/health"
+	DefaultPort                 = 8188
+	DefaultCollectInterval      = time.Minute
+	DefaultRetention            = 24 * time.Hour
+	DefaultRedisAddr            = "127.0.0.1:63719"
+	DefaultRedisDB              = 4
+	DefaultRedisWatchDBs        = "0,4"
+	DefaultDploDataDir          = "/var/lib/dplo"
+	DefaultDploHealthURL        = "http://127.0.0.1:8090/health"
 	DefaultOpenVPNStatusPath    = "/etc/openvpn/openvpn-status.log"
 	DefaultOpenVPNContainerName = "openvpn"
 	DefaultRabbitURL            = "http://127.0.0.1:15672/rabbit"
@@ -34,6 +34,7 @@ type Config struct {
 	RabbitURL            string
 	RabbitUser           string
 	RabbitPassword       string
+	NotifyURL            string
 	DploDataDir          string
 	DploHealthURL        string
 	OpenVPNStatusPath    string
@@ -56,6 +57,7 @@ func Load() Config {
 		RabbitURL:            envOr("MOGOTOR_RABBIT_URL", DefaultRabbitURL),
 		RabbitUser:           envOr("MOGOTOR_RABBIT_USER", DefaultRabbitUser),
 		RabbitPassword:       os.Getenv("MOGOTOR_RABBIT_PASSWORD"),
+		NotifyURL:            strings.TrimSpace(os.Getenv("MOGOTOR_NOTIFY_URL")),
 		DploDataDir:          envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
 		DploHealthURL:        envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
 		OpenVPNStatusPath:    envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),

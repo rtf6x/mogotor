@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -76,6 +77,39 @@ func TestLoadRabbitFromEnv(t *testing.T) {
 	}
 	if cfg.RabbitUser != "monitor" || cfg.RabbitPassword != "pw" {
 		t.Fatalf("rabbit auth: user=%q pass=%q", cfg.RabbitUser, cfg.RabbitPassword)
+	}
+}
+
+func TestLoadNotifyURLUnsetDisables(t *testing.T) {
+	orig, had := os.LookupEnv("MOGOTOR_NOTIFY_URL")
+	os.Unsetenv("MOGOTOR_NOTIFY_URL")
+	t.Cleanup(func() {
+		if had {
+			os.Setenv("MOGOTOR_NOTIFY_URL", orig)
+		} else {
+			os.Unsetenv("MOGOTOR_NOTIFY_URL")
+		}
+	})
+
+	cfg := Load()
+	if cfg.NotifyURL != "" {
+		t.Fatalf("unset MOGOTOR_NOTIFY_URL should disable notify, got %s", cfg.NotifyURL)
+	}
+}
+
+func TestLoadNotifyURLEmptyDisables(t *testing.T) {
+	t.Setenv("MOGOTOR_NOTIFY_URL", "")
+	cfg := Load()
+	if cfg.NotifyURL != "" {
+		t.Fatalf("empty MOGOTOR_NOTIFY_URL should disable notify, got %s", cfg.NotifyURL)
+	}
+}
+
+func TestLoadNotifyURLFromEnv(t *testing.T) {
+	t.Setenv("MOGOTOR_NOTIFY_URL", "https://example.test/hook")
+	cfg := Load()
+	if cfg.NotifyURL != "https://example.test/hook" {
+		t.Fatalf("notify url: got %s", cfg.NotifyURL)
 	}
 }
 

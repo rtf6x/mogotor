@@ -2,24 +2,35 @@ package collector
 
 import (
 	"context"
+	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/rtf6x/mogotor/internal/config"
 	"github.com/rtf6x/mogotor/internal/models"
+	"github.com/rtf6x/mogotor/internal/notify"
 	"github.com/rtf6x/mogotor/internal/store"
 )
 
 type Collector struct {
-	cfg     config.Config
-	history *store.History
-	latest  *store.Latest
+	cfg      config.Config
+	history  *store.History
+	latest   *store.Latest
+	notifier *notify.Notifier
 }
 
 func New(cfg config.Config, history *store.History, latest *store.Latest) *Collector {
+	hostname, _ := os.Hostname()
 	return &Collector{
 		cfg:     cfg,
 		history: history,
 		latest:  latest,
+		notifier: notify.New(notify.Config{
+			URL:       cfg.NotifyURL,
+			StatePath: filepath.Join(cfg.DataDir, "last-daily-notify"),
+			Hostname:  hostname,
+		}),
 	}
 }
 
@@ -77,4 +88,7 @@ func (c *Collector) collect() {
 
 	c.history.Add(system)
 	c.latest.Set(snapshot)
+	if err := c.notifier.MaybeSend(snapshot, now); err != nil {
+		log.Printf("notify: %v", err)
+	}
 }

@@ -4,6 +4,8 @@ Small server analytics dashboard for Linux hosts.
 
 Shows CPU, memory, disk, network, and load averages with 24-hour charts, plus PM2 processes, Docker containers (including Redis/Mongo/RabbitMQ), systemd host services, and MongoDB/Redis status.
 
+Around 09:00 Europe/Berlin mogotor posts a short daily digest to Telegram when `MOGOTOR_NOTIFY_URL` is set (JSON `{"text":"..."}`). On CI that comes from dplo env vars.
+
 ## Quick start
 
 ```bash

@@ -21,6 +21,7 @@ func CollectSystem(now time.Time) models.SystemSnapshot {
 
 	if vm, err := mem.VirtualMemory(); err == nil {
 		snapshot.MemoryUsedBytes = vm.Used
+		snapshot.MemoryAvailableBytes = vm.Available
 		snapshot.MemoryTotalBytes = vm.Total
 	}
 
