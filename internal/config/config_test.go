@@ -17,6 +17,9 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("MOGOTOR_RABBIT_URL", "")
 	t.Setenv("MOGOTOR_RABBIT_USER", "")
 	t.Setenv("MOGOTOR_RABBIT_PASSWORD", "")
+	t.Setenv("MOGOTOR_GOMODEL_URL", "")
+	t.Setenv("MOGOTOR_GOMODEL_API_KEY", "")
+	t.Setenv("GOMODEL_MASTER_KEY", "")
 	t.Setenv("MOGOTOR_OPENVPN_CONTAINER", "")
 	t.Setenv("MOGOTOR_OPENVPN_STATUS_PATH", "")
 
@@ -41,6 +44,12 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.RabbitPassword != "" {
 		t.Fatalf("expected empty rabbit password by default")
+	}
+	if cfg.GoModelURL != DefaultGoModelURL {
+		t.Fatalf("expected default gomodel url %s, got %s", DefaultGoModelURL, cfg.GoModelURL)
+	}
+	if cfg.GoModelAPIKey != "" {
+		t.Fatalf("expected empty gomodel key by default")
 	}
 	if cfg.CollectInterval != time.Minute {
 		t.Fatalf("expected 1m interval, got %s", cfg.CollectInterval)
@@ -77,6 +86,34 @@ func TestLoadRabbitFromEnv(t *testing.T) {
 	}
 	if cfg.RabbitUser != "monitor" || cfg.RabbitPassword != "pw" {
 		t.Fatalf("rabbit auth: user=%q pass=%q", cfg.RabbitUser, cfg.RabbitPassword)
+	}
+}
+
+func TestLoadGoModelFromEnv(t *testing.T) {
+	t.Setenv("MOGOTOR_GOMODEL_URL", "https://llm.rootfox.cc")
+	t.Setenv("MOGOTOR_GOMODEL_API_KEY", "sk-test")
+	t.Setenv("GOMODEL_MASTER_KEY", "ignored")
+
+	cfg := Load()
+	if cfg.GoModelURL != "https://llm.rootfox.cc" {
+		t.Fatalf("gomodel url: got %s", cfg.GoModelURL)
+	}
+	if cfg.GoModelAPIKey != "sk-test" {
+		t.Fatalf("gomodel key: got %q", cfg.GoModelAPIKey)
+	}
+}
+
+func TestLoadGoModelFallsBackToMasterKey(t *testing.T) {
+	t.Setenv("MOGOTOR_GOMODEL_URL", "")
+	t.Setenv("MOGOTOR_GOMODEL_API_KEY", "")
+	t.Setenv("GOMODEL_MASTER_KEY", "master-key")
+
+	cfg := Load()
+	if cfg.GoModelURL != DefaultGoModelURL {
+		t.Fatalf("default gomodel url: got %s", cfg.GoModelURL)
+	}
+	if cfg.GoModelAPIKey != "master-key" {
+		t.Fatalf("expected GOMODEL_MASTER_KEY fallback, got %q", cfg.GoModelAPIKey)
 	}
 }
 

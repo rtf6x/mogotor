@@ -727,6 +727,55 @@ function renderRabbit(rabbit) {
   `;
 }
 
+function renderGoModel(gomodel) {
+  const status = document.getElementById("gomodel-status");
+  const panel = document.getElementById("gomodel-panel");
+
+  if (!gomodel || !gomodel.available) {
+    status.textContent = gomodel?.error || "GoModel unavailable";
+    status.className = "status-line error";
+    panel.innerHTML = "";
+    return;
+  }
+
+  const models = gomodel.models || [];
+  const up = models.filter((m) => m.available).length;
+  const down = models.length - up;
+  status.textContent = `${up}/${models.length} enabled available` + (down ? ` · ${down} down` : "");
+  status.className = down ? "status-line error" : "status-line";
+
+  if (!models.length) {
+    panel.innerHTML = `<div class="service-desc">No enabled models (enable in GoModel dashboard)</div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="redis-db-card">
+      <div class="redis-section">
+        <div class="redis-section-title">Enabled models</div>
+        <table class="redis-jobs-table">
+          <thead>
+            <tr>
+              <th>Selector</th>
+              <th>Provider</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${models.map((m) => `
+              <tr>
+                <td class="mono">${m.selector || "—"}</td>
+                <td class="mono">${m.providerName || m.providerType || "—"}</td>
+                <td><span class="pill ${m.available ? "ok" : "bad"}">${m.available ? "up" : "down"}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function renderFail2ban(fail2ban) {
   const status = document.getElementById("fail2ban-status");
   const body = document.querySelector("#fail2ban-table tbody");
@@ -791,6 +840,7 @@ async function refresh() {
   renderSSH(snapshot.ssh);
   renderRedis(snapshot.redis);
   renderRabbit(snapshot.rabbit);
+  renderGoModel(snapshot.gomodel);
   renderFail2ban(snapshot.fail2ban);
 }
 

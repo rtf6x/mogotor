@@ -20,6 +20,7 @@ func FormatDigest(hostname string, snap models.Snapshot) string {
 		pm2Line(snap.PM2),
 		dockerLine(snap.Docker),
 		rabbitLine(snap.Rabbit),
+		goModelLine(snap.GoModel),
 	}
 	return strings.Join(lines, "\n")
 }
@@ -90,6 +91,33 @@ func rabbitLine(rabbit models.RabbitSnapshot) string {
 		}
 	}
 	return fmt.Sprintf("rabbit %d queues, %d without consumer", len(rabbit.Queues), idle)
+}
+
+func goModelLine(gm models.GoModelSnapshot) string {
+	if !gm.Available {
+		return "llm down"
+	}
+	up := 0
+	downNames := make([]string, 0)
+	for _, m := range gm.Models {
+		if m.Available {
+			up++
+			continue
+		}
+		downNames = append(downNames, m.Selector)
+	}
+	total := len(gm.Models)
+	if total == 0 {
+		return "llm 0 enabled"
+	}
+	if len(downNames) == 0 {
+		return fmt.Sprintf("llm %d/%d up", up, total)
+	}
+	shown := downNames
+	if len(shown) > 3 {
+		shown = append(shown[:3], "...")
+	}
+	return fmt.Sprintf("llm %d/%d up, down: %s", up, total, strings.Join(shown, ", "))
 }
 
 func formatBytes(n uint64) string {

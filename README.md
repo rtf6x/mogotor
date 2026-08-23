@@ -2,9 +2,9 @@
 
 Small server analytics dashboard for Linux hosts.
 
-Shows CPU, memory, disk, network, and load averages with 24-hour charts, plus PM2 processes, Docker containers (including Redis/Mongo/RabbitMQ), systemd host services, and MongoDB/Redis status.
+Shows CPU, memory, disk, network, and load averages with 24-hour charts, plus PM2 processes, Docker containers (including Redis/Mongo/RabbitMQ), systemd host services, MongoDB/Redis status, and GoModel enabled-model availability.
 
-Around 09:00 Europe/Berlin mogotor posts a short daily digest to Telegram when `MOGOTOR_NOTIFY_URL` is set (JSON `{"text":"..."}`). On CI that comes from dplo env vars.
+Around 09:00 Europe/Berlin mogotor posts a short daily digest to Telegram when `MOGOTOR_NOTIFY_URL` is set (JSON `{"text":"..."}`). On CI that comes from dplo env vars. The digest includes an `llm` line for enabled GoModel models (up/down).
 
 ## Quick start
 
@@ -20,6 +20,8 @@ Listen address defaults to `:8188`. Override with `MOGOTOR_ADDR`, for example `:
 History is stored in Redis (database 4 by default; on ci.rootfox.cc Redis runs in Docker). Set `MOGOTOR_REDIS_ADDR` or `REDIS_ADDR` (default `127.0.0.1:63719`), `REDIS_PASSWORD`, and optionally `MOGOTOR_REDIS_DB`.
 
 RabbitMQ Management API (optional panel): `MOGOTOR_RABBIT_URL` (default `http://127.0.0.1:15672/rabbit`), `MOGOTOR_RABBIT_USER` (default `rootfox`), `MOGOTOR_RABBIT_PASSWORD`.
+
+GoModel panel (enabled models): `MOGOTOR_GOMODEL_URL` (default `http://127.0.0.1:4242`), `MOGOTOR_GOMODEL_API_KEY` (or `GOMODEL_MASTER_KEY`).
 
 Systemd service list watches host units only (nginx, docker, dplo, fail2ban). Redis, MongoDB, and OpenVPN are monitored via their own panels / Docker, not as host systemd units.
 

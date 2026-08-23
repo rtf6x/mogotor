@@ -21,6 +21,7 @@ const (
 	DefaultOpenVPNContainerName = "openvpn"
 	DefaultRabbitURL            = "http://127.0.0.1:15672/rabbit"
 	DefaultRabbitUser           = "rootfox"
+	DefaultGoModelURL           = "http://127.0.0.1:4242"
 )
 
 type Config struct {
@@ -34,6 +35,8 @@ type Config struct {
 	RabbitURL            string
 	RabbitUser           string
 	RabbitPassword       string
+	GoModelURL           string
+	GoModelAPIKey        string
 	NotifyURL            string
 	DploDataDir          string
 	DploHealthURL        string
@@ -57,6 +60,8 @@ func Load() Config {
 		RabbitURL:            envOr("MOGOTOR_RABBIT_URL", DefaultRabbitURL),
 		RabbitUser:           envOr("MOGOTOR_RABBIT_USER", DefaultRabbitUser),
 		RabbitPassword:       os.Getenv("MOGOTOR_RABBIT_PASSWORD"),
+		GoModelURL:           envOr("MOGOTOR_GOMODEL_URL", DefaultGoModelURL),
+		GoModelAPIKey:        resolveGoModelAPIKey(),
 		NotifyURL:            strings.TrimSpace(os.Getenv("MOGOTOR_NOTIFY_URL")),
 		DploDataDir:          envOr("MOGOTOR_DPLO_DATA_DIR", DefaultDploDataDir),
 		DploHealthURL:        envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
@@ -119,6 +124,13 @@ func resolveRedisAddr() string {
 		return addr
 	}
 	return DefaultRedisAddr
+}
+
+func resolveGoModelAPIKey() string {
+	if key := strings.TrimSpace(os.Getenv("MOGOTOR_GOMODEL_API_KEY")); key != "" {
+		return key
+	}
+	return strings.TrimSpace(os.Getenv("GOMODEL_MASTER_KEY"))
 }
 
 func envOr(key, fallback string) string {

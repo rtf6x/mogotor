@@ -47,6 +47,14 @@ func TestFormatDigestIncludesHostDiskRamLoadPM2DockerRabbit(t *testing.T) {
 				{Name: "advice.events.mad-news", Consumers: 1},
 			},
 		},
+		GoModel: models.GoModelSnapshot{
+			Available: true,
+			Models: []models.GoModelModel{
+				{Selector: "opencode-zen/big-pickle", Available: true},
+				{Selector: "opencode-zen/mimo-v2.5-free", Available: true},
+				{Selector: "opencode-zen/laguna-s-2.1-free", Available: false},
+			},
+		},
 	}
 
 	text := FormatDigest("ci.rootfox.cc", snap)
@@ -58,6 +66,7 @@ func TestFormatDigestIncludesHostDiskRamLoadPM2DockerRabbit(t *testing.T) {
 		"pm2 2 online, 1 other",
 		"docker 3",
 		"rabbit 5 queues, 2 without consumer",
+		"llm 2/3 up, down: opencode-zen/laguna-s-2.1-free",
 	}
 	for _, line := range want {
 		if !strings.Contains(text, line) {
@@ -85,10 +94,25 @@ func TestFormatDigestUsesMemAvailableNotSwapInflatedUsed(t *testing.T) {
 
 func TestFormatDigestUnavailablePanels(t *testing.T) {
 	text := FormatDigest("host", models.Snapshot{})
-	for _, line := range []string{"pm2 down", "docker down", "rabbit down"} {
+	for _, line := range []string{"pm2 down", "docker down", "rabbit down", "llm down"} {
 		if !strings.Contains(text, line) {
 			t.Fatalf("missing %q in:\n%s", line, text)
 		}
+	}
+}
+
+func TestFormatDigestGoModelAllUp(t *testing.T) {
+	text := FormatDigest("host", models.Snapshot{
+		GoModel: models.GoModelSnapshot{
+			Available: true,
+			Models: []models.GoModelModel{
+				{Selector: "opencode-zen/big-pickle", Available: true},
+				{Selector: "opencode-zen/mimo-v2.5-free", Available: true},
+			},
+		},
+	})
+	if !strings.Contains(text, "llm 2/2 up") {
+		t.Fatalf("expected all-up llm line, got:\n%s", text)
 	}
 }
 

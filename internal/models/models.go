@@ -235,6 +235,19 @@ type OpenVPNSnapshot struct {
 	Clients     []string `json:"clients"`
 }
 
+type GoModelModel struct {
+	Selector     string `json:"selector"`
+	ProviderName string `json:"providerName,omitempty"`
+	ProviderType string `json:"providerType,omitempty"`
+	Available    bool   `json:"available"`
+}
+
+type GoModelSnapshot struct {
+	Available bool           `json:"available"`
+	Error     string         `json:"error,omitempty"`
+	Models    []GoModelModel `json:"models"`
+}
+
 type Snapshot struct {
 	Timestamp time.Time        `json:"timestamp"`
 	System    SystemSnapshot   `json:"system"`
@@ -249,6 +262,7 @@ type Snapshot struct {
 	Fail2ban  Fail2banSnapshot `json:"fail2ban"`
 	Redis     RedisSnapshot    `json:"redis"`
 	Rabbit    RabbitSnapshot   `json:"rabbit"`
+	GoModel   GoModelSnapshot  `json:"gomodel"`
 }
 
 type HistoryResponse struct {
