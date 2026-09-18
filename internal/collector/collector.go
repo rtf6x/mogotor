@@ -62,7 +62,7 @@ func (c *Collector) collect() {
 	pm2 := CollectPM2("")
 	docker := CollectDocker("docker")
 	services := CollectServices(c.cfg.Services)
-	mongo := CollectMongo(c.cfg.MongoURI)
+	mongo := CollectMongo(c.cfg.MongoURI, c.cfg.MongoContainerName)
 	dplo := CollectDplo(c.cfg.DploDataDir, c.cfg.DploHealthURL)
 	openvpn := CollectOpenVPN(c.cfg.OpenVPNStatusPath, c.cfg.OpenVPNContainerName)
 	ssh := CollectSSH()

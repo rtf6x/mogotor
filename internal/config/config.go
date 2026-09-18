@@ -22,6 +22,7 @@ const (
 	DefaultRabbitURL            = "http://127.0.0.1:15672/rabbit"
 	DefaultRabbitUser           = "rootfox"
 	DefaultGoModelURL           = "http://127.0.0.1:4242"
+	DefaultMongoContainerName   = "mongo"
 )
 
 type Config struct {
@@ -42,6 +43,7 @@ type Config struct {
 	DploHealthURL        string
 	OpenVPNStatusPath    string
 	OpenVPNContainerName string
+	MongoContainerName   string
 	CollectInterval      time.Duration
 	Retention            time.Duration
 	Services             []string
@@ -67,6 +69,7 @@ func Load() Config {
 		DploHealthURL:        envOr("MOGOTOR_DPLO_HEALTH_URL", DefaultDploHealthURL),
 		OpenVPNStatusPath:    envOr("MOGOTOR_OPENVPN_STATUS_PATH", DefaultOpenVPNStatusPath),
 		OpenVPNContainerName: envOr("MOGOTOR_OPENVPN_CONTAINER", DefaultOpenVPNContainerName),
+		MongoContainerName:   envOr("MOGOTOR_MONGO_CONTAINER", DefaultMongoContainerName),
 		CollectInterval:      DefaultCollectInterval,
 		Retention:            DefaultRetention,
 		Services: []string{

@@ -35,3 +35,19 @@ func TestBytesTrim(t *testing.T) {
 		t.Fatalf("unexpected trim: %q", got)
 	}
 }
+
+func TestContainerMongoURIRewritesLoopbackPort(t *testing.T) {
+	got, ok := containerMongoURI("mongodb://rootfox:secret@127.0.0.1:28888/admin")
+	if !ok {
+		t.Fatalf("expected loopback uri to rewrite")
+	}
+	if got != "mongodb://rootfox:secret@127.0.0.1:27017/admin" {
+		t.Fatalf("unexpected rewritten uri: %q", got)
+	}
+}
+
+func TestContainerMongoURIRejectsNonLoopbackHost(t *testing.T) {
+	if _, ok := containerMongoURI("mongodb://db.example.com:28888/admin"); ok {
+		t.Fatalf("expected non-loopback host to be rejected")
+	}
+}
